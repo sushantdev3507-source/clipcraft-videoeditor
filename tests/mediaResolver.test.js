@@ -41,21 +41,29 @@ describe("mediaResolver.service (Sprint 3 contract)", () => {
 
   after(async () => {
     if (createdUserIds.length > 0) {
-      await pool.query("DELETE FROM dev_users WHERE id = ANY($1::uuid[])", [createdUserIds]);
+      await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [createdUserIds]);
     }
     await pool.end();
   });
 
+  // Cutover: these seed real `users`/`projects` rows now, not the old
+  // dev_users/dev_projects placeholders -- see ownership.service.js's
+  // cutover note. users.email is UNIQUE NOT NULL, so each gets a synthetic,
+  // uniquely-generated address that exists only to satisfy that constraint.
   async function createUser() {
     const id = crypto.randomUUID();
-    await pool.query("INSERT INTO dev_users (id, display_name) VALUES ($1, $2)", [id, "Resolver Test User"]);
+    const email = `resolver-test-${id}@clipcraft.dev`;
+    await pool.query(
+      "INSERT INTO users (id, name, email, auth_provider) VALUES ($1, $2, $3, $4)",
+      [id, "Resolver Test User", email, "dev"]
+    );
     createdUserIds.push(id);
     return id;
   }
 
   async function createProject(ownerId) {
     const id = crypto.randomUUID();
-    await pool.query("INSERT INTO dev_projects (id, owner_id, name) VALUES ($1, $2, $3)", [
+    await pool.query("INSERT INTO projects (id, user_id, title) VALUES ($1, $2, $3)", [
       id,
       ownerId,
       "Resolver Test Project",

@@ -67,13 +67,6 @@ app.get("/api/v1/export-test", (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`ClipCraft Backend running on port ${PORT}`);
-  console.log("Export routes loaded");
-});
 // --- Media Management (Member 2) -------------------------------------------
 app.use("/api/v1/dev", devRoutes); // isolated dev/test-only auth -- see app/middleware/devAuth.js
 app.use("/api/v1/media", mediaRoutes);

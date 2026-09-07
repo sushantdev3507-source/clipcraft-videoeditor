@@ -154,17 +154,6 @@ function saveStream(storageKey, readableStream, maxBytes) {
         let bytesWritten = 0;
         let aborted = false;
 
-        readableStream.on("data", (chunk) => {
-          bytesWritten += chunk.length;
-          if (typeof maxBytes === "number" && bytesWritten > maxBytes && !aborted) {
-            aborted = true;
-            const err = new Error(`Stream exceeded maxBytes (${maxBytes})`);
-            err.code = "MAX_BYTES_EXCEEDED";
-            readableStream.unpipe(writeStream);
-            readableStream.destroy();
-            writeStream.destroy();
-            fsp.unlink(absolutePath).catch(() => {});
-            reject(err);
         function cleanupAndReject(err) {
           if (aborted) return;
           aborted = true;
@@ -199,16 +188,6 @@ function saveStream(storageKey, readableStream, maxBytes) {
         });
 
         readableStream.on("error", (err) => {
-          if (aborted) return;
-          writeStream.destroy();
-          fsp.unlink(absolutePath).catch(() => {});
-          reject(err);
-        });
-
-        writeStream.on("error", (err) => {
-          if (aborted) return;
-          fsp.unlink(absolutePath).catch(() => {});
-          reject(err);
           cleanupAndReject(err);
         });
 
@@ -244,8 +223,6 @@ async function stat(storageKey) {
   return fsp.stat(resolveAbsolutePath(storageKey));
 }
 
-/** Remove the entire directory for a media asset (original + all derived assets). */
-async function deleteAssetDirectory(assetId) {
 /**
  * Remove the entire directory for a media asset (original + all derived
  * assets). This is a recursive `rm`, so it must never be trusted to run

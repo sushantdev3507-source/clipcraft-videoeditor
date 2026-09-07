@@ -15,16 +15,17 @@ let server;
 let baseUrl;
 const fixtures = ensureFixtures();
 
-// Every dev_user created below is tracked here and deleted by exact id in
-// after() (which cascades to its dev_projects/media_assets rows -- see the
-// FKs in app/db/migrations/001_dev_placeholder_auth.sql and
-// 003_media_assets_project_fk.sql). This is deliberately NOT a blanket
-// TRUNCATE: node --test runs each test *file* as its own concurrent child
-// process against the same shared development database (see
-// tests/helpers/testEnv.js), so a TRUNCATE here could delete rows another
-// test file is still using mid-run. Deleting only the specific ids this
-// file created is safe under that concurrency because ids are random
-// UUIDs that never collide across files.
+// Every dev user created below is tracked here and deleted by exact id in
+// after() (which cascades to its projects/media_assets rows -- see the FKs
+// in database/schema.sql and app/db/migrations/004_uuid_ids.sql /
+// 003_media_assets_project_fk.sql; dev.controller.js creates these as real
+// `users`/`projects` rows -- see ownership.service.js's cutover note). This
+// is deliberately NOT a blanket TRUNCATE: node --test runs each test *file*
+// as its own concurrent child process against the same shared development
+// database (see tests/helpers/testEnv.js), so a TRUNCATE here could delete
+// rows another test file is still using mid-run. Deleting only the specific
+// ids this file created is safe under that concurrency because ids are
+// random UUIDs that never collide across files.
 const createdUserIds = [];
 
 async function jsonRequest(method, urlPath, { token, body } = {}) {
@@ -104,7 +105,7 @@ describe("Media Management API (integration)", () => {
   after(async () => {
     await new Promise((resolve) => server.close(resolve));
     if (createdUserIds.length > 0) {
-      await pool.query("DELETE FROM dev_users WHERE id = ANY($1::uuid[])", [createdUserIds]);
+      await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [createdUserIds]);
     }
     await pool.end();
   });

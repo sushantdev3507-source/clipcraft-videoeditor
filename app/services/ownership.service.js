@@ -1,11 +1,15 @@
 /**
  * Project-ownership check used to gate media upload/access/delete.
  *
- * This talks to the temporary `dev_projects` placeholder table (see
- * app/db/migrations/001_dev_placeholder_auth.sql). When Member 1 ships real
- * projects, only this file's queries need to change (to point at the real
- * `projects` table) -- callers (upload parser, media controller) only ever
- * see the {exists, isOwner} shape below, never the underlying table name.
+ * Cutover: this originally talked to the temporary `dev_projects`
+ * placeholder table (see app/db/migrations/001_dev_placeholder_auth.sql),
+ * exactly as this comment used to say it would need to change once Member 1
+ * shipped real projects. That has now happened -- 004_uuid_ids.sql also
+ * repointed media_assets' fk_media_assets_project foreign key at the real
+ * `projects` table -- so this now queries `projects` directly. Callers
+ * (upload parser, media controller, dev.controller.js) only ever see the
+ * {exists, isOwner} shape below, never the underlying table name, so no
+ * other file needed to change for this cutover.
  */
 
 const pool = require("../config/db");
@@ -17,7 +21,7 @@ const pool = require("../config/db");
  */
 async function checkProjectOwnership(projectId, userId) {
   const result = await pool.query(
-    "SELECT owner_id FROM dev_projects WHERE id = $1",
+    "SELECT user_id AS owner_id FROM projects WHERE id = $1",
     [projectId]
   );
 

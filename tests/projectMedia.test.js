@@ -19,6 +19,8 @@ const app = require("../app/server");
 
 // Tracked and deleted by exact id in after() -- see the matching comment in
 // tests/api.test.js for why this is scoped per-id rather than a TRUNCATE.
+// (dev.controller.js creates these as real `users`/`projects` rows -- see
+// ownership.service.js's cutover note.)
 const createdUserIds = [];
 
 let server;
@@ -96,7 +98,7 @@ describe("Project-scoped media API (Sprint 2 integration)", () => {
   after(async () => {
     await new Promise((resolve) => server.close(resolve));
     if (createdUserIds.length > 0) {
-      await pool.query("DELETE FROM dev_users WHERE id = ANY($1::uuid[])", [createdUserIds]);
+      await pool.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [createdUserIds]);
     }
     await pool.end();
   });
@@ -233,7 +235,7 @@ describe("Project-scoped media API (Sprint 2 integration)", () => {
     });
     assert.equal(res.status, 204);
 
-    const check = await pool.query("SELECT 1 FROM dev_projects WHERE id = $1", [projectId]);
+    const check = await pool.query("SELECT 1 FROM projects WHERE id = $1", [projectId]);
     assert.equal(check.rows.length, 0);
   });
 
@@ -254,7 +256,7 @@ describe("Project-scoped media API (Sprint 2 integration)", () => {
     assert.equal(forbidden.status, 403);
 
     // Confirm the rejected delete attempt left the project intact.
-    const stillThere = await pool.query("SELECT 1 FROM dev_projects WHERE id = $1", [owner.projectId]);
+    const stillThere = await pool.query("SELECT 1 FROM projects WHERE id = $1", [owner.projectId]);
     assert.equal(stillThere.rows.length, 1);
   });
 
@@ -280,7 +282,7 @@ describe("Project-scoped media API (Sprint 2 integration)", () => {
     assert.equal(del.status, 204);
 
     // Project row gone.
-    const projectRow = await pool.query("SELECT 1 FROM dev_projects WHERE id = $1", [projectId]);
+    const projectRow = await pool.query("SELECT 1 FROM projects WHERE id = $1", [projectId]);
     assert.equal(projectRow.rows.length, 0);
 
     // media_assets rows gone (via the explicit cleanup call, backed by the
@@ -313,7 +315,7 @@ describe("Project-scoped media API (Sprint 2 integration)", () => {
     const second = await deleteAllMediaForProject(projectId);
     assert.equal(second.deletedCount, 0);
 
-    await pool.query("DELETE FROM dev_projects WHERE id = $1", [projectId]);
+    await pool.query("DELETE FROM projects WHERE id = $1", [projectId]);
   });
 
   // --- Sprint 3 ------------------------------------------------------------

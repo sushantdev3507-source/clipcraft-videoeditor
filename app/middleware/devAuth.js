@@ -2,25 +2,35 @@
  * ============================================================================
  * ISOLATED DEVELOPMENT/TEST AUTH -- TEMPORARY, NOT PRODUCTION ARCHITECTURE
  * ============================================================================
- * Member 1 owns real authentication. It doesn't exist on this branch yet, so
- * Media Management needs *some* way to establish "who is making this
- * request" in order to enforce project-ownership checks on media
- * upload/access/delete.
+ * Member 1 owns real authentication (app/routes/auth.js). Media Management
+ * still uses this separate dev-only token issuer for tests and local
+ * development rather than real login, so uploads can be exercised without a
+ * full register/login round trip.
  *
  * This file is deliberately kept small, isolated, and impossible to mistake
  * for real auth:
- *   - it only issues/verifies tokens for the `dev_users` placeholder table
- *     (see app/db/migrations/001_dev_placeholder_auth.sql)
  *   - it signs with its own env var (DEV_AUTH_JWT_SECRET), never a
  *     production auth secret
  *   - it is only ever wired to the /api/v1/dev/* routes (see
  *     app/routes/dev.routes.js) and used by devAuthRequired below
- *   - nothing outside this file and dev.routes.js should import from
- *     `dev_users` / `dev_projects`
+ *   - it does not touch any specific table itself -- it only signs/verifies
+ *     a `{ sub: userId }` JWT; dev.controller.js (login/createProject/etc.)
+ *     is what decides which table that userId lives in
  *
- * DELETE THIS FILE (and app/routes/dev.routes.js, and the dev_* tables) once
- * Member 1's real auth + projects ship. Do not extend this into permanent
- * media architecture.
+ * Cutover note: dev.controller.js originally created its dev accounts/
+ * projects in the temporary `dev_users` / `dev_projects` placeholder tables
+ * (see app/db/migrations/001_dev_placeholder_auth.sql). Once Member 1's real
+ * `users`/`projects` tables shipped and 004_uuid_ids.sql repointed
+ * media_assets' foreign key at the real `projects` table, that placeholder
+ * data no longer satisfied the FK, so dev.controller.js (and
+ * ownership.service.js) were cut over to create/read real `users` /
+ * `projects` rows instead -- see those files' own notes. The `dev_users` /
+ * `dev_projects` tables themselves are now unused and can be dropped in a
+ * future migration.
+ *
+ * DELETE THIS FILE (and app/routes/dev.routes.js) once Member 1's real auth
+ * + projects are what the frontend actually integrates against. Do not
+ * extend this into permanent media architecture.
  * ============================================================================
  */
 

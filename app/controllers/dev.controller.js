@@ -1,6 +1,20 @@
 /**
  * Controllers backing the isolated dev-only auth/project routes.
  * See app/middleware/devAuth.js for why this exists and why it's temporary.
+ *
+ * Cutover note: this used to create/read the temporary `dev_users` /
+ * `dev_projects` placeholder tables (see app/db/migrations/001_dev_placeholder_auth.sql).
+ * Now that Member 1's real `users` and `projects` tables exist and
+ * 004_uuid_ids.sql has repointed media_assets' fk_media_assets_project at
+ * the real `projects` table, a project created against the old dev_projects
+ * table can no longer satisfy that foreign key -- every media upload made
+ * against a dev-created project failed with a DB-level FK violation. This
+ * file now creates/reads real `users` / `projects` rows instead (via a
+ * synthetic, uniquely-generated email for the dev "account"), so the
+ * dev-only login/project flow still works end to end for testing without
+ * needing full registration, while staying consistent with whichever table
+ * the media FK actually points at. ownership.service.js was cut over the
+ * same way -- see that file's own note.
  */
 
 const crypto = require("crypto");
@@ -14,7 +28,7 @@ async function login(req, res, next) {
     const { displayName, userId } = req.body || {};
 
     if (userId) {
-      const result = await pool.query("SELECT id FROM dev_users WHERE id = $1", [userId]);
+      const result = await pool.query("SELECT id FROM users WHERE id = $1", [userId]);
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "NOT_FOUND", message: "Unknown dev userId" });
       }
@@ -22,9 +36,12 @@ async function login(req, res, next) {
     }
 
     const newUserId = crypto.randomUUID();
+    // Synthetic but unique -- users.email is UNIQUE NOT NULL, and this
+    // account exists only to satisfy that constraint for dev/testing.
+    const devEmail = `dev-${newUserId}@clipcraft.dev`;
     await pool.query(
-      "INSERT INTO dev_users (id, display_name) VALUES ($1, $2)",
-      [newUserId, displayName || "Dev User"]
+      "INSERT INTO users (id, name, email, auth_provider) VALUES ($1, $2, $3, $4)",
+      [newUserId, displayName || "Dev User", devEmail, "dev"]
     );
 
     return res.status(201).json({ userId: newUserId, token: issueDevToken(newUserId) });
@@ -42,7 +59,7 @@ async function createProject(req, res, next) {
 
     const projectId = crypto.randomUUID();
     await pool.query(
-      "INSERT INTO dev_projects (id, owner_id, name) VALUES ($1, $2, $3)",
+      "INSERT INTO projects (id, user_id, title) VALUES ($1, $2, $3)",
       [projectId, req.devUser.userId, name]
     );
 
@@ -55,7 +72,7 @@ async function createProject(req, res, next) {
 async function listProjects(req, res, next) {
   try {
     const result = await pool.query(
-      "SELECT id, name, created_at FROM dev_projects WHERE owner_id = $1 ORDER BY created_at DESC",
+      "SELECT id, title AS name, created_at FROM projects WHERE user_id = $1 ORDER BY created_at DESC",
       [req.devUser.userId]
     );
     return res.json({ projects: result.rows });
@@ -86,7 +103,7 @@ async function deleteProject(req, res, next) {
     // Contract: clean up media (files + rows) BEFORE deleting the project
     // row. See projectMediaCleanup.service.js for why the order matters.
     await deleteAllMediaForProject(projectId);
-    await pool.query("DELETE FROM dev_projects WHERE id = $1", [projectId]);
+    await pool.query("DELETE FROM projects WHERE id = $1", [projectId]);
 
     return res.status(204).send();
   } catch (err) {

@@ -1,8 +1,12 @@
 /**
  * Media Management API. Mounted at /api/v1/media in app/server.js.
  *
- * All routes require the isolated dev-auth middleware (see
- * app/middleware/devAuth.js) until Member 1's real auth lands.
+ * Cutover: this used to require the isolated dev-auth middleware (see
+ * app/middleware/devAuth.js) until Member 1's real auth landed -- it now
+ * has, so every route here is gated by the same real authMiddleware used by
+ * app/routes/auth.js and app/routes/projects.js. A token from
+ * POST /api/v1/auth/login is required; the old dev-only token issued by
+ * POST /api/v1/dev/login is no longer accepted here.
  *
  * POST   /api/v1/media/upload         multipart/form-data; fields MUST be
  *                                      sent in this order: `projectId`
@@ -19,12 +23,12 @@
  */
 
 const express = require("express");
-const { devAuthRequired } = require("../middleware/devAuth");
+const authMiddleware = require("../middleware/authMiddleware");
 const mediaController = require("../controllers/media.controller");
 
 const router = express.Router();
 
-router.use(devAuthRequired);
+router.use(authMiddleware);
 
 router.post("/upload", mediaController.upload);
 router.get("/", mediaController.list);

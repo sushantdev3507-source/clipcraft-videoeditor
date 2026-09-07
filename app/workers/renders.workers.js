@@ -112,7 +112,18 @@ loadQueuedJobs();
 // ==========================================
 // Start queue worker
 // ==========================================
-setInterval(processQueue, 1000);
+// .unref() tells Node not to count this timer when deciding whether the
+// process has anything left to do. The interval still fires normally for as
+// long as anything else keeps the process alive (e.g. the real HTTP server
+// listening) -- this only matters for a script that requires this file
+// (directly or via app/server.js) and then has nothing else running: without
+// .unref(), that script can never exit on its own, which is exactly what was
+// happening to tests/api.test.js and tests/projectMedia.test.js (both load
+// app/server.js, which requires this file) -- every one of their subtests
+// passed, but `node --test` itself hung past the last one until its own
+// timeout killed it. No behavior change for the app when actually running.
+const queueInterval = setInterval(processQueue, 1000);
+queueInterval.unref();
 
 
 module.exports = {

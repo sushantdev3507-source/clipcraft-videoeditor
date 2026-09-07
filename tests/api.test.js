@@ -1,6 +1,7 @@
 require("./helpers/testEnv");
 const { test, describe, before, after } = require("node:test");
 const assert = require("node:assert/strict");
+const crypto = require("crypto");
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -15,17 +16,16 @@ let server;
 let baseUrl;
 const fixtures = ensureFixtures();
 
-// Every dev user created below is tracked here and deleted by exact id in
+// Every user created below is tracked here and deleted by exact id in
 // after() (which cascades to its projects/media_assets rows -- see the FKs
 // in database/schema.sql and app/db/migrations/004_uuid_ids.sql /
-// 003_media_assets_project_fk.sql; dev.controller.js creates these as real
-// `users`/`projects` rows -- see ownership.service.js's cutover note). This
-// is deliberately NOT a blanket TRUNCATE: node --test runs each test *file*
-// as its own concurrent child process against the same shared development
-// database (see tests/helpers/testEnv.js), so a TRUNCATE here could delete
-// rows another test file is still using mid-run. Deleting only the specific
-// ids this file created is safe under that concurrency because ids are
-// random UUIDs that never collide across files.
+// 003_media_assets_project_fk.sql). This is deliberately NOT a blanket
+// TRUNCATE: node --test runs each test *file* as its own concurrent child
+// process against the same shared development database (see
+// tests/helpers/testEnv.js), so a TRUNCATE here could delete rows another
+// test file is still using mid-run. Deleting only the specific ids this
+// file created is safe under that concurrency because ids are random UUIDs
+// that never collide across files.
 const createdUserIds = [];
 
 async function jsonRequest(method, urlPath, { token, body } = {}) {
@@ -63,16 +63,27 @@ async function uploadFile({ token, projectId, filePath, mimeType, fieldOrderSwap
   return { status: res.status, json };
 }
 
+// Cutover: media routes now require a real login token (see
+// app/routes/media.routes.js's own note), not the old dev-only token, so
+// fixtures register+log in through the real auth API instead of
+// POST /api/v1/dev/login. Each user gets a synthetic, uniquely-generated
+// email -- users.email is UNIQUE NOT NULL and nothing here cares what the
+// address actually is.
 async function createUserAndProject(displayName) {
-  const login = await jsonRequest("POST", "/api/v1/dev/login", { body: { displayName } });
+  const email = `${displayName.toLowerCase()}-${crypto.randomUUID()}@clipcraft.dev`;
+  const password = "Test-password-123!";
+
+  await jsonRequest("POST", "/api/v1/auth/register", { body: { name: displayName, email, password } });
+  const login = await jsonRequest("POST", "/api/v1/auth/login", { body: { email, password } });
   const token = login.json.token;
-  const userId = login.json.userId;
+  const userId = login.json.user.id;
   createdUserIds.push(userId);
-  const project = await jsonRequest("POST", "/api/v1/dev/projects", {
+
+  const project = await jsonRequest("POST", "/api/v1/projects", {
     token,
-    body: { name: `${displayName}'s project` },
+    body: { title: `${displayName}'s project` },
   });
-  return { token, userId, projectId: project.json.id };
+  return { token, userId, projectId: project.json.project.id };
 }
 
 async function waitUntilProcessed(token, assetId, timeoutMs = 15000) {

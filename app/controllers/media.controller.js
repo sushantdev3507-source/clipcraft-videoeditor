@@ -16,8 +16,17 @@ const { streamFileWithRange } = require("../utils/rangeStream");
 const { ApiError } = require("../utils/apiError");
 const { isUuid } = require("../utils/isUuid");
 
-/** Loads a media asset by id and verifies the requesting dev user owns its project. 404 vs 403 semantics: a nonexistent asset (or one whose project no longer exists) is 404; an asset that exists but isn't yours is 403. */
-async function loadOwnedAsset(assetId, devUserId) {
+/**
+ * Loads a media asset by id and verifies the requesting user owns its
+ * project. 404 vs 403 semantics: a nonexistent asset (or one whose project
+ * no longer exists) is 404; an asset that exists but isn't yours is 403.
+ *
+ * Cutover: `userId` now comes from the real authMiddleware's req.user.userId
+ * (see app/routes/media.routes.js's own note) rather than the old isolated
+ * dev-auth middleware's req.devUser.userId -- every call site below was
+ * updated to match.
+ */
+async function loadOwnedAsset(assetId, userId) {
   if (!isUuid(assetId)) {
     throw ApiError.badRequest("Invalid media asset id");
   }
@@ -27,7 +36,7 @@ async function loadOwnedAsset(assetId, devUserId) {
     throw ApiError.notFound("Media asset not found");
   }
 
-  const ownership = await checkProjectOwnership(asset.project_id, devUserId);
+  const ownership = await checkProjectOwnership(asset.project_id, userId);
   if (!ownership.exists) {
     throw ApiError.notFound("Media asset not found");
   }
@@ -69,12 +78,12 @@ function serializeAsset(asset) {
 
 async function upload(req, res, next) {
   try {
-    const parsed = await parseMediaUpload(req, req.devUser.userId);
+    const parsed = await parseMediaUpload(req, req.user.userId);
 
     const asset = await mediaAssets.insert({
       id: parsed.assetId,
       projectId: parsed.projectId,
-      uploadedBy: req.devUser.userId,
+      uploadedBy: req.user.userId,
       originalFilename: parsed.originalFilename,
       mediaType: parsed.mediaType,
       mimeType: parsed.mimeType,
@@ -98,12 +107,12 @@ async function upload(req, res, next) {
  * orders by created_at DESC, backed by the idx_media_assets_project_created
  * composite index -- a single indexed query, not one query per asset).
  */
-async function fetchProjectMediaList(projectId, devUserId) {
+async function fetchProjectMediaList(projectId, userId) {
   if (!isUuid(projectId)) {
     throw ApiError.badRequest("Invalid projectId");
   }
 
-  const ownership = await checkProjectOwnership(projectId, devUserId);
+  const ownership = await checkProjectOwnership(projectId, userId);
   if (!ownership.exists) throw ApiError.notFound("Project not found");
   if (!ownership.isOwner) throw ApiError.forbidden("You do not have access to this project");
 
@@ -118,7 +127,7 @@ async function list(req, res, next) {
     if (!projectId) {
       throw ApiError.badRequest("projectId query parameter is required");
     }
-    const assets = await fetchProjectMediaList(projectId, req.devUser.userId);
+    const assets = await fetchProjectMediaList(projectId, req.user.userId);
     res.json({ assets });
   } catch (err) {
     next(err);
@@ -148,7 +157,7 @@ async function listByProject(req, res, next) {
 
 async function getOne(req, res, next) {
   try {
-    const asset = await loadOwnedAsset(req.params.id, req.devUser.userId);
+    const asset = await loadOwnedAsset(req.params.id, req.user.userId);
     res.json({ asset: serializeAsset(asset) });
   } catch (err) {
     next(err);
@@ -157,7 +166,7 @@ async function getOne(req, res, next) {
 
 async function streamMedia(req, res, next) {
   try {
-    const asset = await loadOwnedAsset(req.params.id, req.devUser.userId);
+    const asset = await loadOwnedAsset(req.params.id, req.user.userId);
 
     const variant = req.query.variant === "original" ? "original" : "auto";
     const useProxy = variant === "auto" && asset.proxy_status === "READY";
@@ -189,7 +198,7 @@ async function streamMedia(req, res, next) {
  */
 async function getProxy(req, res, next) {
   try {
-    const asset = await loadOwnedAsset(req.params.id, req.devUser.userId);
+    const asset = await loadOwnedAsset(req.params.id, req.user.userId);
 
     if (asset.proxy_status !== "READY") {
       throw ApiError.notFound("Proxy is not available for this asset");
@@ -203,7 +212,7 @@ async function getProxy(req, res, next) {
 
 async function getThumbnail(req, res, next) {
   try {
-    const asset = await loadOwnedAsset(req.params.id, req.devUser.userId);
+    const asset = await loadOwnedAsset(req.params.id, req.user.userId);
 
     if (asset.thumbnail_status !== "READY") {
       throw ApiError.notFound("Thumbnail is not available for this asset");
@@ -217,7 +226,7 @@ async function getThumbnail(req, res, next) {
 
 async function getWaveform(req, res, next) {
   try {
-    const asset = await loadOwnedAsset(req.params.id, req.devUser.userId);
+    const asset = await loadOwnedAsset(req.params.id, req.user.userId);
 
     if (asset.waveform_status !== "READY") {
       throw ApiError.notFound("Waveform is not available for this asset");
@@ -233,7 +242,7 @@ async function getWaveform(req, res, next) {
 
 async function remove(req, res, next) {
   try {
-    const asset = await loadOwnedAsset(req.params.id, req.devUser.userId);
+    const asset = await loadOwnedAsset(req.params.id, req.user.userId);
 
     // Storage cleanup runs BEFORE the DB row is deleted, and its error is
     // allowed to propagate (not swallowed): if deleteAssetDirectory throws,

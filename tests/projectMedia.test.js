@@ -1,6 +1,7 @@
 require("./helpers/testEnv");
 const { test, describe, before, after } = require("node:test");
 const assert = require("node:assert/strict");
+const crypto = require("crypto");
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -19,8 +20,6 @@ const app = require("../app/server");
 
 // Tracked and deleted by exact id in after() -- see the matching comment in
 // tests/api.test.js for why this is scoped per-id rather than a TRUNCATE.
-// (dev.controller.js creates these as real `users`/`projects` rows -- see
-// ownership.service.js's cutover note.)
 const createdUserIds = [];
 
 let server;
@@ -56,16 +55,35 @@ async function uploadFile({ token, projectId, filePath, mimeType }) {
   return { status: res.status, json };
 }
 
+// Cutover: media routes now require a real login token (see
+// app/routes/media.routes.js's own note), not the old dev-only token, so
+// fixtures register+log in through the real auth API instead of
+// POST /api/v1/dev/login. A handful of tests below also exercise the
+// dev-only project-delete route directly (it's kept only as a standing
+// demonstration of the project-deletion media-cleanup contract Member 1's
+// real project deletion should follow -- see dev.controller.js's own note),
+// so a matching dev token for the SAME real user is minted alongside the
+// real one: dev.controller.js's login() accepts an existing userId and
+// issues a token for it without creating a second, disconnected account.
 async function createUserAndProject(displayName) {
-  const login = await jsonRequest("POST", "/api/v1/dev/login", { body: { displayName } });
+  const email = `${displayName.toLowerCase()}-${crypto.randomUUID()}@clipcraft.dev`;
+  const password = "Test-password-123!";
+
+  await jsonRequest("POST", "/api/v1/auth/register", { body: { name: displayName, email, password } });
+  const login = await jsonRequest("POST", "/api/v1/auth/login", { body: { email, password } });
   const token = login.json.token;
-  const userId = login.json.userId;
+  const userId = login.json.user.id;
   createdUserIds.push(userId);
-  const project = await jsonRequest("POST", "/api/v1/dev/projects", {
+
+  const project = await jsonRequest("POST", "/api/v1/projects", {
     token,
-    body: { name: `${displayName}'s project` },
+    body: { title: `${displayName}'s project` },
   });
-  return { token, userId, projectId: project.json.id };
+
+  const devLogin = await jsonRequest("POST", "/api/v1/dev/login", { body: { userId } });
+  const devToken = devLogin.json.token;
+
+  return { token, devToken, userId, projectId: project.json.project.id };
 }
 
 async function waitUntilProcessed(token, assetId, timeoutMs = 15000) {
@@ -228,10 +246,10 @@ describe("Project-scoped media API (Sprint 2 integration)", () => {
   });
 
   test("project-deletion media cleanup: deleting a project with no media is a safe no-op", async () => {
-    const { token, projectId } = await createUserAndProject("Nancy");
+    const { devToken, projectId } = await createUserAndProject("Nancy");
     const res = await fetch(`${baseUrl}/api/v1/dev/projects/${projectId}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${devToken}` },
     });
     assert.equal(res.status, 204);
 
@@ -245,13 +263,13 @@ describe("Project-scoped media API (Sprint 2 integration)", () => {
 
     const notFound = await fetch(`${baseUrl}/api/v1/dev/projects/00000000-0000-0000-0000-000000000000`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${owner.token}` },
+      headers: { Authorization: `Bearer ${owner.devToken}` },
     });
     assert.equal(notFound.status, 404);
 
     const forbidden = await fetch(`${baseUrl}/api/v1/dev/projects/${owner.projectId}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${intruder.token}` },
+      headers: { Authorization: `Bearer ${intruder.devToken}` },
     });
     assert.equal(forbidden.status, 403);
 
@@ -261,7 +279,7 @@ describe("Project-scoped media API (Sprint 2 integration)", () => {
   });
 
   test("project-deletion media cleanup: deleting a project removes every media_assets row AND every file on disk, not just the project row", async () => {
-    const { token, projectId } = await createUserAndProject("Quinn");
+    const { token, devToken, projectId } = await createUserAndProject("Quinn");
 
     const upload1 = await uploadFile({ token, projectId, filePath: fixtures["sample.mp4"], mimeType: "video/mp4" });
     const upload2 = await uploadFile({ token, projectId, filePath: fixtures["sample.jpg"], mimeType: "image/jpeg" });
@@ -277,7 +295,7 @@ describe("Project-scoped media API (Sprint 2 integration)", () => {
 
     const del = await fetch(`${baseUrl}/api/v1/dev/projects/${projectId}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${devToken}` },
     });
     assert.equal(del.status, 204);
 

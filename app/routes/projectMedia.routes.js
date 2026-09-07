@@ -14,16 +14,20 @@
  * authenticateToken -> req.user.userId -> requireProjectAccess -> req.project
  * flow (see app/middleware/requireProjectAccess.js) instead of the
  * controller re-deriving ownership itself.
+ *
+ * Cutover: authenticateToken above is now the real authMiddleware (see
+ * app/routes/auth.js), not the isolated dev-auth middleware -- see
+ * app/routes/media.routes.js's own note for why.
  */
 
 const express = require("express");
-const { devAuthRequired } = require("../middleware/devAuth");
+const authMiddleware = require("../middleware/authMiddleware");
 const { requireProjectAccess } = require("../middleware/requireProjectAccess");
 const mediaController = require("../controllers/media.controller");
 
 const router = express.Router();
 
-router.use(devAuthRequired);
+router.use(authMiddleware);
 
 router.get("/:projectId/media", requireProjectAccess, mediaController.listByProject);
 

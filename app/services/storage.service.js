@@ -98,6 +98,21 @@ function derivedKey(assetId, kind) {
   return path.posix.join(assetDirKey(assetId), filename);
 }
 
+/**
+ * Storage key for a rendered export job's output file, kept under its own
+ * top-level `exports/<jobId>/` prefix (siblings of the per-asset
+ * `<assetId>/` directories) so export.controller.js's download endpoint can
+ * resolve and stream it through the exact same safe, traversal-checked
+ * resolveAbsolutePath() path media files already use, instead of the old
+ * export.controller.js's unchecked `path.resolve(job.output_file)`.
+ */
+function exportOutputKey(jobId, format = "mp4") {
+  if (!isUuid(jobId)) {
+    throw new Error(`Refusing to build an export output key for invalid jobId: ${JSON.stringify(jobId)}`);
+  }
+  return path.posix.join("exports", jobId, `output.${format}`);
+}
+
 async function ensureParentDir(absolutePath) {
   await fsp.mkdir(path.dirname(absolutePath), { recursive: true });
 }
@@ -259,6 +274,8 @@ module.exports = {
   resolveAbsolutePath,
   originalKey,
   derivedKey,
+  exportOutputKey,
+  ensureParentDir,
   saveStream,
   createReadStream,
   exists,

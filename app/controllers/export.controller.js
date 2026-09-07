@@ -1,319 +1,303 @@
-const fs = require("fs");
-const path = require("path");
-
-const {
-  addToQueue,
-  getQueueStatus
-} = require("../services/queue.service");
+/**
+ * Export/render job controller.
+ *
+ * Rewritten from the original scaffold, which:
+ *   - took raw {inputFile, outputFile} filesystem paths straight from the
+ *     request body (an arbitrary-file-read/traversal risk, since it did
+ *     `fs.existsSync(cleanInputFile)` on a client-supplied path with no
+ *     sandboxing at all),
+ *   - had no auth (export.routes.js mounted every handler with no
+ *     authMiddleware), so any of these ownership-free queries were
+ *     reachable by anyone who could reach the API at all,
+ *   - generated job ids via `Date.now().toString()` instead of a real id,
+ *   - and queried a table (export_jobs) that nothing ever created --
+ *     confirmed by grepping every boot/test log in this repo's history,
+ *     every one of these endpoints has been 500ing since the feature was
+ *     first scaffolded.
+ *
+ * This version instead:
+ *   - accepts only {projectId, format, quality} -- never a filesystem path --
+ *     and resolves the actual input file itself, server-side, from the
+ *     project's own timeline_json + media_assets via
+ *     timelineCompiler.service.js (which in turn uses
+ *     mediaResolver.service.js, the sanctioned integration seam for that),
+ *   - requires authMiddleware (see export.routes.js) and scopes every query
+ *     to req.user.userId, exactly like projects.js / media.controller.js,
+ *   - uses real UUIDs (export_jobs.id defaults to gen_random_uuid(), see
+ *     005_export_jobs.sql),
+ *   - follows this module's established ApiError / errorHandler convention
+ *     instead of ad hoc res.status(...).json(...) error shapes, and
+ *   - streams the completed file back via storage.service.js's
+ *     traversal-checked resolveAbsolutePath() + the existing Range-aware
+ *     streamFileWithRange() helper, instead of res.download() on a raw,
+ *     unchecked client-influenced path.
+ */
 
 const pool = require("../config/db");
+const { ApiError } = require("../utils/apiError");
+const { isUuid } = require("../utils/isUuid");
+const { streamFileWithRange } = require("../utils/rangeStream");
+const storage = require("../services/storage.service");
+const { compileTimeline, REASON } = require("../services/timelineCompiler.service");
+const { addToQueue, getQueueStatus } = require("../services/queue.service");
 
+const VALID_FORMATS = ["mp4"];
+const VALID_QUALITIES = ["720p", "1080p"];
+
+/** Maps a failed compileTimeline() result to the right HTTP-level ApiError. */
+function compileFailureToApiError(compiled) {
+  switch (compiled.reason) {
+    case REASON.ASSET_FORBIDDEN:
+      return ApiError.forbidden(compiled.message);
+    case REASON.ASSET_NOT_FOUND:
+      return ApiError.notFound(compiled.message);
+    case REASON.NO_CLIP:
+    case REASON.INVALID_TIMELINE:
+      return ApiError.badRequest(compiled.message, "NOTHING_TO_EXPORT");
+    case REASON.ASSET_NOT_READY:
+      return new ApiError(409, "ASSET_NOT_READY", compiled.message);
+    case REASON.ASSET_SOURCE_MISSING:
+      return ApiError.internal(compiled.message);
+    default:
+      return ApiError.badRequest(compiled.message || "This project's edit could not be exported.");
+  }
+}
 
 // ==========================================
 // 1. Create Export Job
 // ==========================================
 async function exportVideo(req, res) {
-  const { inputFile, outputFile } = req.body;
+  const { projectId, format, quality } = req.body || {};
 
-  // Validate request body
-  if (
-    typeof inputFile !== "string" ||
-    typeof outputFile !== "string" ||
-    !inputFile.trim() ||
-    !outputFile.trim()
-  ) {
-    return res.status(400).json({
-      message: "inputFile and outputFile are required and must be strings"
-    });
+  if (!isUuid(projectId)) {
+    throw ApiError.badRequest("projectId is required and must be a valid project id");
   }
 
-  // Remove accidental spaces
-  const cleanInputFile = inputFile.trim();
-  const cleanOutputFile = outputFile.trim();
+  const resolvedFormat = format === undefined ? "mp4" : format;
+  const resolvedQuality = quality === undefined ? "1080p" : quality;
 
-  // Check input file
-  if (!fs.existsSync(cleanInputFile)) {
-    return res.status(400).json({
-      message: "Input file not found",
-      inputFile: cleanInputFile
-    });
+  if (!VALID_FORMATS.includes(resolvedFormat)) {
+    throw ApiError.badRequest(`format must be one of: ${VALID_FORMATS.join(", ")}`);
+  }
+  if (!VALID_QUALITIES.includes(resolvedQuality)) {
+    throw ApiError.badRequest(`quality must be one of: ${VALID_QUALITIES.join(", ")}`);
   }
 
-  try {
-    const result = await pool.query(
-      `INSERT INTO export_jobs
-       (id, input_file, output_file, status)
-       VALUES ($1, $2, $3, $4)
-       RETURNING *`,
-      [
-        Date.now().toString(),
-        cleanInputFile,
-        cleanOutputFile,
-        "queued"
-      ]
-    );
+  const projectResult = await pool.query(
+    `SELECT id, timeline_json FROM projects WHERE id = $1 AND user_id = $2`,
+    [projectId, req.user.userId]
+  );
 
-    const job = result.rows[0];
-
-    // Add job to render queue
-    addToQueue(job);
-
-    res.status(202).json({
-      message: "Video export added to queue",
-      job
-    });
-
-  } catch (error) {
-    console.error("EXPORT JOB ERROR:", error.message);
-
-    res.status(500).json({
-      message: "Failed to create export job",
-      error: error.message
-    });
+  if (projectResult.rows.length === 0) {
+    // Ownership-scoped lookup, so this also covers "exists but isn't yours"
+    // without revealing the difference -- same pattern as projects.js.
+    throw ApiError.notFound("Project not found");
   }
+
+  const project = projectResult.rows[0];
+
+  // Validate + resolve the real source file up front, at job-creation time,
+  // so a doomed export never even reaches the queue -- the same
+  // mediaResolver-backed compiler the worker itself will use to actually
+  // render, called here purely for fast validation.
+  const compiled = await compileTimeline(project.timeline_json, projectId, req.user.userId);
+  if (!compiled.ok) {
+    throw compileFailureToApiError(compiled);
+  }
+
+  const insertResult = await pool.query(
+    `INSERT INTO export_jobs (project_id, user_id, format, quality, status)
+     VALUES ($1, $2, $3, $4, 'queued')
+     RETURNING *`,
+    [projectId, req.user.userId, resolvedFormat, resolvedQuality]
+  );
+
+  const job = insertResult.rows[0];
+  addToQueue(job);
+
+  res.status(202).json({
+    message: "Video export added to queue",
+    job,
+  });
 }
-
 
 // ==========================================
 // 2. Get Single Export Job
 // ==========================================
 async function getExportJob(req, res) {
   const { id } = req.params;
-
-  try {
-    const result = await pool.query(
-      `SELECT
-         id,
-         input_file,
-         output_file,
-         status,
-         error_message,
-         created_at,
-         updated_at
-       FROM export_jobs
-       WHERE id = $1`,
-      [id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Export job not found"
-      });
-    }
-
-    res.json({
-      job: result.rows[0]
-    });
-
-  } catch (error) {
-    console.error("GET EXPORT JOB ERROR:", error.message);
-
-    res.status(500).json({
-      message: "Failed to get export job",
-      error: error.message
-    });
+  if (!isUuid(id)) {
+    throw ApiError.notFound("Export job not found");
   }
+
+  const result = await pool.query(
+    `SELECT id, project_id, user_id, format, quality, status, error_message,
+            output_storage_key, created_at, updated_at
+     FROM export_jobs
+     WHERE id = $1 AND user_id = $2`,
+    [id, req.user.userId]
+  );
+
+  if (result.rows.length === 0) {
+    throw ApiError.notFound("Export job not found");
+  }
+
+  res.json({ job: result.rows[0] });
 }
 
-
 // ==========================================
-// 3. Get All Export Jobs
+// 3. Get All Export Jobs (scoped to the caller, optionally by project)
 // ==========================================
 async function getAllExportJobs(req, res) {
-  try {
-    const result = await pool.query(
-      `SELECT
-         id,
-         input_file,
-         output_file,
-         status,
-         error_message,
-         created_at,
-         updated_at
-       FROM export_jobs
-       ORDER BY created_at DESC`
-    );
+  const { projectId } = req.query;
 
-    res.json({
-      count: result.rows.length,
-      jobs: result.rows
-    });
-
-  } catch (error) {
-    console.error("GET ALL EXPORT JOBS ERROR:", error.message);
-
-    res.status(500).json({
-      message: "Failed to get export jobs",
-      error: error.message
-    });
+  const params = [req.user.userId];
+  let where = "user_id = $1";
+  if (projectId !== undefined) {
+    if (!isUuid(projectId)) {
+      throw ApiError.badRequest("projectId must be a valid project id");
+    }
+    params.push(projectId);
+    where += ` AND project_id = $${params.length}`;
   }
-}
 
+  const result = await pool.query(
+    `SELECT id, project_id, user_id, format, quality, status, error_message,
+            output_storage_key, created_at, updated_at
+     FROM export_jobs
+     WHERE ${where}
+     ORDER BY created_at DESC`,
+    params
+  );
+
+  res.json({ count: result.rows.length, jobs: result.rows });
+}
 
 // ==========================================
 // 4. Retry Failed Export Job
 // ==========================================
 async function retryExportJob(req, res) {
   const { id } = req.params;
-
-  try {
-    const result = await pool.query(
-      `SELECT *
-       FROM export_jobs
-       WHERE id = $1`,
-      [id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Export job not found"
-      });
-    }
-
-    const job = result.rows[0];
-
-    if (job.status !== "failed") {
-      return res.status(400).json({
-        message: "Only failed export jobs can be retried",
-        status: job.status
-      });
-    }
-
-    const updatedResult = await pool.query(
-      `UPDATE export_jobs
-       SET status = $1,
-           error_message = NULL,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2
-       RETURNING *`,
-      ["queued", id]
-    );
-
-    const updatedJob = updatedResult.rows[0];
-
-    addToQueue(updatedJob);
-
-    res.status(202).json({
-      message: "Export job added to retry queue",
-      job: updatedJob
-    });
-
-  } catch (error) {
-    console.error("RETRY EXPORT JOB ERROR:", error.message);
-
-    res.status(500).json({
-      message: "Failed to retry export job",
-      error: error.message
-    });
+  if (!isUuid(id)) {
+    throw ApiError.notFound("Export job not found");
   }
-}
 
+  const result = await pool.query(
+    `SELECT * FROM export_jobs WHERE id = $1 AND user_id = $2`,
+    [id, req.user.userId]
+  );
+
+  if (result.rows.length === 0) {
+    throw ApiError.notFound("Export job not found");
+  }
+
+  const job = result.rows[0];
+  if (job.status !== "failed") {
+    throw ApiError.badRequest("Only failed export jobs can be retried", "NOT_FAILED");
+  }
+
+  // Re-validate the timeline at retry time too -- the project's edit may
+  // have changed (or broken) since the original attempt was queued.
+  const projectResult = await pool.query(
+    `SELECT timeline_json FROM projects WHERE id = $1 AND user_id = $2`,
+    [job.project_id, req.user.userId]
+  );
+  if (projectResult.rows.length === 0) {
+    throw ApiError.notFound("The project for this export job no longer exists");
+  }
+  const compiled = await compileTimeline(projectResult.rows[0].timeline_json, job.project_id, req.user.userId);
+  if (!compiled.ok) {
+    throw compileFailureToApiError(compiled);
+  }
+
+  const updatedResult = await pool.query(
+    `UPDATE export_jobs
+     SET status = 'queued', error_message = NULL, output_storage_key = NULL, updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1
+     RETURNING *`,
+    [id]
+  );
+
+  const updatedJob = updatedResult.rows[0];
+  addToQueue(updatedJob);
+
+  res.status(202).json({ message: "Export job added to retry queue", job: updatedJob });
+}
 
 // ==========================================
 // 5. Download Completed Export
 // ==========================================
 async function downloadExport(req, res) {
   const { id } = req.params;
-
-  try {
-    const result = await pool.query(
-      `SELECT id, output_file, status
-       FROM export_jobs
-       WHERE id = $1`,
-      [id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Export job not found"
-      });
-    }
-
-    const job = result.rows[0];
-
-    if (job.status !== "completed") {
-      return res.status(400).json({
-        message: "Export is not completed yet",
-        status: job.status
-      });
-    }
-
-    const outputPath = path.resolve(job.output_file);
-
-    if (!fs.existsSync(outputPath)) {
-      return res.status(404).json({
-        message: "Output file not found"
-      });
-    }
-
-    res.download(
-      outputPath,
-      path.basename(outputPath),
-      (error) => {
-        if (error) {
-          console.error("DOWNLOAD ERROR:", error.message);
-        }
-      }
-    );
-
-  } catch (error) {
-    console.error("DOWNLOAD EXPORT ERROR:", error.message);
-
-    res.status(500).json({
-      message: "Failed to download export",
-      error: error.message
-    });
+  if (!isUuid(id)) {
+    throw ApiError.notFound("Export job not found");
   }
+
+  const result = await pool.query(
+    `SELECT id, status, format, output_storage_key FROM export_jobs WHERE id = $1 AND user_id = $2`,
+    [id, req.user.userId]
+  );
+
+  if (result.rows.length === 0) {
+    throw ApiError.notFound("Export job not found");
+  }
+
+  const job = result.rows[0];
+
+  if (job.status !== "completed") {
+    throw ApiError.badRequest("Export is not completed yet", "EXPORT_NOT_READY");
+  }
+  if (!job.output_storage_key) {
+    // Shouldn't happen -- the worker only ever marks a job completed after
+    // successfully writing output_storage_key -- but fail loudly rather
+    // than streaming nothing if the two ever get out of sync.
+    throw ApiError.internal("This export has no output file on record");
+  }
+
+  const absolutePath = storage.resolveAbsolutePath(job.output_storage_key);
+  const fileExists = await storage.exists(job.output_storage_key);
+  if (!fileExists) {
+    throw ApiError.notFound("The rendered file is missing from storage");
+  }
+
+  res.setHeader("Content-Disposition", `attachment; filename="clipcraft-export-${job.id}.${job.format}"`);
+  await streamFileWithRange(req, res, absolutePath, "video/mp4");
 }
 
-
 // ==========================================
-// 6. Get Queue Status
+// 6. Get Queue Status (scoped to the caller's own jobs -- the underlying
+//    queue is a single process-wide in-memory array shared by every user,
+//    so this must never hand back other users' project ids/job rows)
 // ==========================================
 function getQueueStatusController(req, res) {
-  const queueStatus = getQueueStatus();
+  const status = getQueueStatus();
+  const mine = status.jobs.filter((job) => job.user_id === req.user.userId);
 
   res.json({
     message: "Render queue status",
-    queue: queueStatus
+    queue: { length: mine.length, jobs: mine },
   });
 }
 
-
 // ==========================================
-// 7. Get Queue Summary
+// 7. Get Queue Summary (scoped to the caller)
 // ==========================================
 async function getQueueSummary(req, res) {
-  try {
-    const result = await pool.query(
-      `SELECT
-         COUNT(*) AS total,
-         COUNT(*) FILTER (WHERE status = 'queued') AS queued,
-         COUNT(*) FILTER (WHERE status = 'processing') AS processing,
-         COUNT(*) FILTER (WHERE status = 'completed') AS completed,
-         COUNT(*) FILTER (WHERE status = 'failed') AS failed
-       FROM export_jobs`
-    );
+  const result = await pool.query(
+    `SELECT
+       COUNT(*) AS total,
+       COUNT(*) FILTER (WHERE status = 'queued') AS queued,
+       COUNT(*) FILTER (WHERE status = 'processing') AS processing,
+       COUNT(*) FILTER (WHERE status = 'completed') AS completed,
+       COUNT(*) FILTER (WHERE status = 'failed') AS failed
+     FROM export_jobs
+     WHERE user_id = $1`,
+    [req.user.userId]
+  );
 
-    res.json({
-      message: "Export queue summary",
-      summary: result.rows[0]
-    });
-
-  } catch (error) {
-    console.error("QUEUE SUMMARY ERROR:", error.message);
-
-    res.status(500).json({
-      message: "Failed to get queue summary",
-      error: error.message
-    });
-  }
+  res.json({ message: "Export queue summary", summary: result.rows[0] });
 }
 
-
-// ==========================================
-// Export Controller Functions
-// ==========================================
 module.exports = {
   exportVideo,
   getExportJob,
@@ -321,5 +305,5 @@ module.exports = {
   retryExportJob,
   downloadExport,
   getQueueStatusController,
-  getQueueSummary
+  getQueueSummary,
 };

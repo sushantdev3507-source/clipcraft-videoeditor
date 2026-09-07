@@ -1,5 +1,7 @@
 const { getNextJob, addToQueue } = require("../services/queue.service");
-const { renderVideo } = require("../services/render.service");
+const { compileTimeline } = require("../services/timelineCompiler.service");
+const { renderExport } = require("../services/exportRender.service");
+const storage = require("../services/storage.service");
 const pool = require("../config/db");
 
 let isProcessing = false;
@@ -32,6 +34,14 @@ async function loadQueuedJobs() {
 // ==========================================
 // Process one render job
 // ==========================================
+// Jobs are keyed by project_id/user_id, not raw file paths -- the worker
+// re-derives the actual source file itself, server-side, from the
+// project's current timeline_json via timelineCompiler.service.js (which
+// resolves the referenced media asset through mediaResolver.service.js).
+// Re-compiling here rather than trusting anything captured at job-creation
+// time also means a job always renders against the project's *current*
+// saved edit, and fails cleanly if the project/asset became unavailable
+// in between (deleted, asset reprocessing failed, etc.).
 async function processQueue() {
   // Prevent multiple jobs from running simultaneously
   if (isProcessing) {
@@ -58,20 +68,38 @@ async function processQueue() {
       ["processing", job.id]
     );
 
-    // Render video
-    await renderVideo(
-      job.input_file,
-      job.output_file
+    const projectResult = await pool.query(
+      `SELECT timeline_json FROM projects WHERE id = $1 AND user_id = $2`,
+      [job.project_id, job.user_id]
     );
+    if (projectResult.rows.length === 0) {
+      throw new Error("The project for this export job no longer exists.");
+    }
+
+    const compiled = await compileTimeline(projectResult.rows[0].timeline_json, job.project_id, job.user_id);
+    if (!compiled.ok) {
+      throw new Error(compiled.message);
+    }
+
+    const outputStorageKey = storage.exportOutputKey(job.id, job.format);
+    const outputAbsolutePath = storage.resolveAbsolutePath(outputStorageKey);
+
+    await renderExport({
+      source: compiled.source,
+      clip: compiled.clip,
+      quality: job.quality,
+      outputAbsolutePath,
+    });
 
     // Mark job as completed
     await pool.query(
       `UPDATE export_jobs
        SET status = $1,
            error_message = NULL,
+           output_storage_key = $2,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2`,
-      ["completed", job.id]
+       WHERE id = $3`,
+      ["completed", outputStorageKey, job.id]
     );
 
     console.log(`Render completed: ${job.id}`);

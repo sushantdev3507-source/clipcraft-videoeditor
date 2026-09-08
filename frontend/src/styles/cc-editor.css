@@ -1,0 +1,448 @@
+/* =========================================================
+   ClipCraft - Video Editor Workspace
+   Owner: Nutan Dhepe
+   Responsibility: Editor Workspace UI
+   ========================================================= */
+
+.editor-workspace {
+  min-height: calc(100vh - 48px);
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 16px;
+  padding: 20px;
+}
+
+/* =========================================================
+   Editor Header
+   ========================================================= */
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.editor-project-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.editor-project-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.editor-project-status {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.editor-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* =========================================================
+   Main Editor Area
+   ========================================================= */
+
+.editor-main {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) 220px;
+  gap: 16px;
+}
+
+/* =========================================================
+   Tool Panel
+   ========================================================= */
+
+.editor-tools {
+  min-width: 0;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.editor-panel-title {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.editor-tool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-tool-button {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.editor-tool-button:hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+.editor-tool-button.active {
+  background: var(--surface-2);
+  border-color: var(--primary);
+}
+
+/* =========================================================
+   Video Preview
+   ========================================================= */
+
+.editor-preview {
+  min-width: 0;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  background: #05070d;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.editor-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-preview-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.editor-preview-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.editor-empty-preview {
+  text-align: center;
+  color: var(--muted);
+}
+
+.editor-empty-preview h3 {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-size: 18px;
+}
+
+.editor-empty-preview p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* =========================================================
+   Properties Panel
+   ========================================================= */
+
+.editor-properties {
+  min-width: 0;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.editor-property-placeholder {
+  padding: 14px 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   Playback Area
+   ========================================================= */
+
+.editor-playback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.editor-playback-button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.editor-time-display {
+  min-width: 100px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* =========================================================
+   Timeline
+   ========================================================= */
+
+.editor-timeline {
+  min-height: 180px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.timeline-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.timeline-empty {
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.timeline-ruler {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.timeline-track {
+  position: relative;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+
+.timeline-clip {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* =========================================================
+   Utility
+   ========================================================= */
+
+.editor-hidden {
+  display: none !important;
+}
+
+/* =========================================================
+   Trim Properties
+   ========================================================= */
+
+.editor-trim-properties {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.editor-property-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editor-property-group label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.editor-property-group input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  outline: none;
+}
+
+.editor-property-group input:focus {
+  border-color: var(--primary);
+}
+
+.editor-trim-properties .btn {
+  width: 100%;
+}
+
+/* =========================================================
+   Trim Timeline Visualization
+   ========================================================= */
+
+.timeline-clip {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow: hidden;
+  padding: 0;
+}
+
+.timeline-segment {
+  min-width: 0;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 11px;
+  transition: width 0.2s ease;
+}
+
+.timeline-before,
+.timeline-after {
+  opacity: 0.45;
+}
+
+.timeline-selected {
+  border-left: 2px solid var(--primary);
+  border-right: 2px solid var(--primary);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* =========================================
+   ClipCraft - Crop Preview
+   ========================================= */
+
+.editor-preview-content.crop-16-9 {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.editor-preview-content.crop-9-16 {
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+}
+
+.editor-preview-content.crop-1-1 {
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+
+.editor-preview-content.crop-4-3 {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+
+/* =========================================
+   ClipCraft - Text Overlay
+   ========================================= */
+
+.editor-video-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.editor-video-stage #editor-video {
+  position: relative;
+  z-index: 1;
+}
+
+.editor-text-overlay {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 90%;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 32px;
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* =========================================
+   ClipCraft - Text Overlay Positions
+   ========================================= */
+
+.editor-text-overlay.text-position-center {
+  top: 50%;
+  bottom: auto;
+}
+
+.editor-text-overlay.text-position-top {
+  top: 10%;
+  bottom: auto;
+}
+
+.editor-text-overlay.text-position-bottom {
+  top: auto;
+  bottom: 10%;
+}

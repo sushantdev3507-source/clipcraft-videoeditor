@@ -1,0 +1,1118 @@
+/* =========================================================
+   CLIPCRAFT SHARED UI COMPONENTS
+   Rushikesh - Reusable Components
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   BUTTON
+   --------------------------------------------------------- */
+
+.ui-button {
+  min-height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 15px;
+
+  border: 1px solid transparent;
+  border-radius: 8px;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+
+.ui-button:active {
+  transform: scale(0.98);
+}
+
+
+/* Primary */
+
+.ui-button-primary {
+  background: var(--primary);
+  color: white;
+
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.16);
+}
+
+
+.ui-button-primary:hover {
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.22);
+}
+
+
+/* Secondary */
+
+.ui-button-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+
+  border-color: var(--border);
+}
+
+
+.ui-button-secondary:hover {
+  background: var(--surface);
+  border-color:
+    rgba(255, 255, 255, 0.14);
+}
+
+
+/* Ghost */
+
+.ui-button-ghost {
+  background: transparent;
+  color: var(--muted);
+}
+
+
+.ui-button-ghost:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+
+/* ---------------------------------------------------------
+   ICON BUTTON
+   --------------------------------------------------------- */
+
+.ui-icon-button {
+  width: 38px;
+  height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid transparent;
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: var(--muted);
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+
+.ui-icon-button:hover {
+  background: var(--surface-2);
+
+  color: var(--text);
+
+  border-color: var(--border);
+}
+
+
+.ui-icon-button:active {
+  transform: scale(0.95);
+}
+
+
+/* ---------------------------------------------------------
+   BADGE
+   --------------------------------------------------------- */
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 22px;
+
+  padding: 0 8px;
+
+  border-radius: 999px;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+
+/* Default */
+
+.ui-badge-default {
+  background: var(--surface-2);
+
+  color: var(--muted);
+
+  border: 1px solid var(--border);
+}
+
+
+/* Primary */
+
+.ui-badge-primary {
+  background:
+    rgba(124, 58, 237, 0.14);
+
+  color:
+    var(--primary);
+}
+
+
+/* Success */
+
+.ui-badge-success {
+  background:
+    rgba(52, 211, 153, 0.12);
+
+  color:
+    #34d399;
+}
+
+
+/* Warning */
+
+.ui-badge-warning {
+  background:
+    rgba(251, 191, 36, 0.12);
+
+  color:
+    #fbbf24;
+}
+
+
+/* Danger */
+
+.ui-badge-danger {
+  background:
+    rgba(248, 113, 113, 0.12);
+
+  color:
+    #f87171;
+}
+
+
+/* ---------------------------------------------------------
+   CARD
+   --------------------------------------------------------- */
+
+.ui-card {
+  padding: 18px;
+
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+
+.ui-card:hover {
+  background: var(--surface-2);
+
+  border-color:
+    rgba(255, 255, 255, 0.12);
+
+  transform: translateY(-1px);
+}
+
+
+.ui-card-title {
+  margin: 0 0 12px;
+
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+.ui-card-content {
+  color: var(--muted);
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+
+/* ---------------------------------------------------------
+   INPUT
+   --------------------------------------------------------- */
+
+.ui-input-group {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+
+.ui-input-label {
+  color: var(--text);
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+
+.ui-input {
+  width: 100%;
+  min-height: 42px;
+
+  box-sizing: border-box;
+
+  padding: 0 12px;
+
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  outline: none;
+
+  background: var(--surface-2);
+
+  color: var(--text);
+
+  font-family: inherit;
+  font-size: 12px;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+
+.ui-input::placeholder {
+  color: var(--muted);
+}
+
+
+.ui-input:hover {
+  border-color:
+    rgba(255, 255, 255, 0.14);
+}
+
+
+.ui-input:focus {
+  border-color: var(--primary);
+
+  box-shadow:
+    0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+
+/* ---------------------------------------------------------
+   DISABLED
+   --------------------------------------------------------- */
+
+.ui-button:disabled,
+.ui-icon-button:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.5;
+
+  transform: none;
+}
+
+
+/* ---------------------------------------------------------
+   RESPONSIVE
+   --------------------------------------------------------- */
+
+@media (max-width: 480px) {
+
+  .ui-button {
+    min-height: 38px;
+
+    padding: 0 13px;
+
+    font-size: 11px;
+  }
+
+  .ui-input {
+    min-height: 40px;
+  }
+
+}
+/* =========================================================
+   CLIPCRAFT - PROJECT MODAL
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   MODAL OVERLAY
+   --------------------------------------------------------- */
+
+.modal-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(0, 0, 0, 0.64);
+
+  backdrop-filter: blur(8px);
+
+  opacity: 0;
+  visibility: hidden;
+
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease;
+}
+
+
+/* Open state */
+
+.modal-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+
+/* ---------------------------------------------------------
+   MODAL BOX
+   --------------------------------------------------------- */
+
+.modal {
+  width: min(100%, 480px);
+
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+
+  border-radius: 14px;
+
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.45);
+
+  transform: translateY(10px) scale(0.98);
+
+  transition:
+    transform 0.2s ease;
+}
+
+
+.modal-overlay.is-open .modal {
+  transform: translateY(0) scale(1);
+}
+
+
+/* ---------------------------------------------------------
+   MODAL HEADER
+   --------------------------------------------------------- */
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 22px 22px 18px;
+
+  border-bottom: 1px solid var(--border);
+}
+
+
+.modal-eyebrow {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: var(--primary);
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 0.12em;
+}
+
+
+.modal-header h2 {
+  margin: 0;
+
+  color: var(--text);
+
+  font-size: 20px;
+}
+
+
+.modal-header p {
+  margin: 7px 0 0;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+
+.modal-close-button {
+  width: 34px;
+  height: 34px;
+
+  flex: 0 0 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid transparent;
+
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: var(--muted);
+
+  font-size: 22px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+
+.modal-close-button:hover {
+  background: var(--surface-2);
+
+  border-color: var(--border);
+
+  color: var(--text);
+}
+
+
+/* ---------------------------------------------------------
+   MODAL BODY
+   --------------------------------------------------------- */
+
+.modal-body {
+  padding: 22px;
+}
+
+
+.modal-label {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: var(--text);
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+
+.modal-input {
+  width: 100%;
+  min-height: 44px;
+
+  box-sizing: border-box;
+
+  padding: 0 13px;
+
+  border: 1px solid var(--border);
+
+  border-radius: 9px;
+
+  outline: none;
+
+  background: var(--surface-2);
+
+  color: var(--text);
+
+  font-family: inherit;
+
+  font-size: 12px;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+
+.modal-input::placeholder {
+  color: var(--muted);
+}
+
+
+.modal-input:focus {
+  border-color: var(--primary);
+
+  box-shadow:
+    0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+
+.modal-error {
+  min-height: 16px;
+
+  margin: 7px 0 0;
+
+  color: #f87171;
+
+  font-size: 10px;
+}
+
+
+/* ---------------------------------------------------------
+   MODAL FOOTER
+   --------------------------------------------------------- */
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  padding: 16px 22px 22px;
+
+  border-top: 1px solid var(--border);
+}
+
+
+.modal-cancel-button,
+.modal-create-button {
+  min-height: 40px;
+
+  padding: 0 15px;
+
+  border-radius: 8px;
+
+  font-family: inherit;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+.modal-cancel-button {
+  border: 1px solid var(--border);
+
+  background: var(--surface-2);
+
+  color: var(--text);
+}
+
+
+.modal-cancel-button:hover {
+  border-color:
+    rgba(255, 255, 255, 0.14);
+}
+
+
+.modal-create-button {
+  border: 1px solid transparent;
+
+  background: var(--primary);
+
+  color: white;
+}
+
+
+.modal-create-button:hover {
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.20);
+}
+
+
+.modal-create-button:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+
+/* ---------------------------------------------------------
+   MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 480px) {
+
+  .modal-overlay {
+    align-items: flex-end;
+
+    padding: 10px;
+  }
+
+  .modal {
+    width: 100%;
+
+    border-radius: 14px 14px 10px 10px;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+}
+/* =========================================================
+   CLIPCRAFT TOAST
+   ========================================================= */
+
+.clipcraft-toast {
+  position: fixed;
+
+  right: 24px;
+  bottom: 24px;
+
+  z-index: 2000;
+
+  max-width: 360px;
+
+  padding: 13px 16px;
+
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+
+  border-left:
+    3px solid var(--primary);
+
+  border-radius: 9px;
+
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.32);
+
+  color: var(--text);
+
+  font-size: 11px;
+  line-height: 1.5;
+
+  opacity: 0;
+  visibility: hidden;
+
+  transform:
+    translateY(12px);
+
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+.clipcraft-toast.is-visible {
+  opacity: 1;
+
+  visibility: visible;
+
+  transform:
+    translateY(0);
+}
+
+
+@media (max-width: 480px) {
+
+  .clipcraft-toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+
+    max-width: none;
+  }
+
+}
+/* =========================================================
+   LOADING STATE
+   ========================================================= */
+
+.ui-loading-state {
+  width: 100%;
+
+  min-height: 220px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  padding: 30px;
+
+  box-sizing: border-box;
+}
+
+
+.ui-loading-spinner {
+  width: 38px;
+  height: 38px;
+
+  margin-bottom: 16px;
+
+  border: 3px solid var(--border);
+
+  border-top-color: var(--primary);
+
+  border-radius: 50%;
+
+  animation:
+    clipcraft-spin 0.8s linear infinite;
+}
+
+
+.ui-loading-title {
+  margin: 0;
+
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+.ui-loading-message {
+  margin: 7px 0 0;
+
+  color: var(--muted);
+
+  font-size: 10px;
+
+  line-height: 1.5;
+}
+
+
+@keyframes clipcraft-spin {
+
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+
+}
+/* =========================================================
+   ERROR STATE
+   ========================================================= */
+
+.ui-error-state {
+  width: 100%;
+
+  min-height: 220px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  box-sizing: border-box;
+
+  text-align: center;
+}
+
+
+.ui-error-icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 14px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(248, 113, 113, 0.12);
+
+  color:
+    #f87171;
+
+  font-size: 18px;
+  font-weight: 700;
+}
+
+
+.ui-error-title {
+  margin: 0;
+
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+.ui-error-message {
+  max-width: 440px;
+
+  margin: 7px 0 16px;
+
+  color: var(--muted);
+
+  font-size: 10px;
+
+  line-height: 1.5;
+}
+
+
+.ui-error-action {
+  min-height: 38px;
+
+  padding: 0 14px;
+
+  border: 1px solid var(--border);
+
+  border-radius: 8px;
+
+  background: var(--surface-2);
+
+  color: var(--text);
+
+  font-family: inherit;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+
+.ui-error-action:hover {
+  background: var(--surface);
+
+  border-color:
+    rgba(255, 255, 255, 0.14);
+}
+/* =========================================================
+   CLIPCRAFT - EMPTY STATE
+   ========================================================= */
+
+.ui-empty-state {
+  width: 100%;
+
+  min-height: 220px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  box-sizing: border-box;
+
+  text-align: center;
+}
+
+
+/* ---------------------------------------------------------
+   EMPTY ICON
+   --------------------------------------------------------- */
+
+.ui-empty-icon {
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 14px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(124, 58, 237, 0.12);
+
+  color: var(--primary);
+
+  font-size: 20px;
+  font-weight: 500;
+}
+
+
+/* ---------------------------------------------------------
+   EMPTY TITLE
+   --------------------------------------------------------- */
+
+.ui-empty-title {
+  margin: 0;
+
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+/* ---------------------------------------------------------
+   EMPTY MESSAGE
+   --------------------------------------------------------- */
+
+.ui-empty-message {
+  max-width: 420px;
+
+  margin: 7px 0 16px;
+
+  color: var(--muted);
+
+  font-size: 10px;
+
+  line-height: 1.5;
+}
+
+
+/* ---------------------------------------------------------
+   EMPTY ACTION BUTTON
+   --------------------------------------------------------- */
+
+.ui-empty-action {
+  min-height: 38px;
+
+  padding: 0 14px;
+
+  border: 1px solid var(--border);
+
+  border-radius: 8px;
+
+  background: var(--surface-2);
+
+  color: var(--text);
+
+  font-family: inherit;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+
+.ui-empty-action:hover {
+  background: var(--surface);
+
+  border-color:
+    rgba(255, 255, 255, 0.14);
+
+  transform: translateY(-1px);
+}
+
+
+.ui-empty-action:active {
+  transform: translateY(0);
+}
+/* =========================================================
+   SUCCESS STATE
+   ========================================================= */
+
+.ui-success-state {
+  width: 100%;
+
+  min-height: 220px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  box-sizing: border-box;
+
+  text-align: center;
+}
+
+
+.ui-success-icon {
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 14px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(52, 211, 153, 0.12);
+
+  color:
+    #34d399;
+
+  font-size: 20px;
+  font-weight: 700;
+}
+
+
+.ui-success-title {
+  margin: 0;
+
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+.ui-success-message {
+  max-width: 420px;
+
+  margin: 7px 0 0;
+
+  color: var(--muted);
+
+  font-size: 10px;
+
+  line-height: 1.5;
+}

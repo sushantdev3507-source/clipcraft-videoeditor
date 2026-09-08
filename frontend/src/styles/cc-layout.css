@@ -1,0 +1,269 @@
+/* =========================================================
+   CLIPCRAFT - APPLICATION LAYOUT
+   Rushikesh - Application Shell
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   MAIN APPLICATION SHELL
+   --------------------------------------------------------- */
+
+.app-shell {
+  min-height: 100vh;
+
+  display: grid;
+
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 72px 1fr;
+
+  background: var(--bg);
+}
+
+
+/* ---------------------------------------------------------
+   HEADER POSITION
+   Header styling is handled in components.css
+   --------------------------------------------------------- */
+
+.app-header {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+
+/* ---------------------------------------------------------
+   SIDEBAR POSITION
+   --------------------------------------------------------- */
+
+.app-sidebar {
+  grid-column: 1;
+  grid-row: 2;
+
+  min-width: 0;
+}
+
+
+/* ---------------------------------------------------------
+   MAIN CONTENT POSITION
+   --------------------------------------------------------- */
+
+.main-content {
+  grid-column: 2;
+  grid-row: 2;
+
+  min-width: 0;
+  min-height: 0;
+
+  padding: 32px;
+}
+
+
+/* ---------------------------------------------------------
+   MAIN CONTENT INNER WRAPPER
+   Useful for future dashboard/editor sections
+   --------------------------------------------------------- */
+
+.main-content-inner {
+  width: 100%;
+  max-width: 1440px;
+
+  margin: 0 auto;
+}
+
+
+/* ---------------------------------------------------------
+   CONTENT SECTION
+   --------------------------------------------------------- */
+
+.content-section {
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+
+/* ---------------------------------------------------------
+   TWO COLUMN LAYOUT
+   Useful for dashboard cards / panels
+   --------------------------------------------------------- */
+
+.content-grid {
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 24px;
+}
+
+
+/* ---------------------------------------------------------
+   THREE COLUMN LAYOUT
+   Useful for cards / quick actions
+   --------------------------------------------------------- */
+
+.content-grid-3 {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 20px;
+}
+
+
+/* ---------------------------------------------------------
+   FOUR COLUMN LAYOUT
+   Useful for statistics cards
+   --------------------------------------------------------- */
+
+.content-grid-4 {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 18px;
+}
+
+
+/* ---------------------------------------------------------
+   FULL WIDTH
+   --------------------------------------------------------- */
+
+.full-width {
+  width: 100%;
+}
+
+
+/* ---------------------------------------------------------
+   FLEX ROW
+   Common utility for horizontal sections
+   --------------------------------------------------------- */
+
+.layout-row {
+  display: flex;
+  align-items: center;
+
+  gap: 16px;
+}
+
+
+/* ---------------------------------------------------------
+   FLEX COLUMN
+   Common utility for vertical sections
+   --------------------------------------------------------- */
+
+.layout-column {
+  display: flex;
+  flex-direction: column;
+
+  gap: 16px;
+}
+
+
+/* ---------------------------------------------------------
+   SPACE BETWEEN
+   --------------------------------------------------------- */
+
+.space-between {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+}
+
+
+/* ---------------------------------------------------------
+   RESPONSIVE - TABLET
+   --------------------------------------------------------- */
+
+@media (max-width: 1024px) {
+
+  .app-shell {
+    grid-template-columns: 210px 1fr;
+    grid-template-rows: 68px 1fr;
+  }
+
+  .main-content {
+    padding: 24px;
+  }
+
+  .content-grid-4 {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   RESPONSIVE - SMALL TABLET / MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 768px) {
+
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: 64px auto 1fr;
+  }
+
+  .app-header {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .app-sidebar {
+    grid-column: 1;
+    grid-row: 2;
+
+    width: 100%;
+  }
+
+  .main-content {
+    grid-column: 1;
+    grid-row: 3;
+
+    padding: 20px;
+  }
+
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .content-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .content-grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   RESPONSIVE - MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 480px) {
+
+  .app-shell {
+    grid-template-rows: 60px auto 1fr;
+  }
+
+  .main-content {
+    padding: 16px;
+  }
+
+  .layout-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .space-between {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+}

@@ -1,0 +1,102 @@
+/* =========================================================
+   ClipCraft — auth layout corrections
+   The team CSS was written for markup where the icon was a direct
+   child of .input-box. The React form wraps icon + input in
+   .input-field, so these rules re-anchor the icon and size the
+   social icon (which otherwise stretches to the button width).
+   ========================================================= */
+
+.auth-card .input-box {
+  display: block;
+  position: relative;
+}
+
+.auth-card .input-box > label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #c8cbd9;
+}
+
+.auth-card .input-field {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.auth-card .input-field > .input-icon,
+.auth-card .input-box > .input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.auth-card .input-field > .input-icon svg,
+.auth-card .input-box > .input-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.auth-card .input-field input {
+  width: 100%;
+  padding-left: 46px;
+  margin: 0;
+}
+
+.auth-card .input-field input[type="password"],
+.auth-card .input-field input#auth-password,
+.auth-card .input-field input#auth-confirm {
+  padding-right: 52px;
+}
+
+.auth-card .input-box + .input-box,
+.auth-card .input-error {
+  margin-top: 6px;
+}
+
+.auth-card .input-box {
+  margin-bottom: 18px;
+}
+
+.auth-card .input-error {
+  display: block;
+  font-size: 12px;
+  color: #ff6b6b;
+}
+
+/* ---------- social button ---------- */
+
+.social-login button.social-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.social-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  display: block;
+}
+
+/* ---------- focus visibility ---------- */
+
+.auth-card a:focus-visible,
+.auth-card button:focus-visible,
+.auth-card input:focus-visible {
+  outline: 2px solid #9b45e8;
+  outline-offset: 2px;
+}

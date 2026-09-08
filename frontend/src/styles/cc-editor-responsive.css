@@ -1,0 +1,102 @@
+/* =========================================================
+   ClipCraft — editor responsive adaptation
+   Desktop layout (tools | preview | properties) is untouched.
+   Below 1024px the properties panel drops under the preview,
+   below 760px everything stacks with the preview first and the
+   tool list becomes a horizontally scrollable strip.
+   ========================================================= */
+
+@media (max-width: 1024px) {
+  .editor-main {
+    grid-template-columns: 170px minmax(0, 1fr);
+    grid-template-areas:
+      "tools preview"
+      "props props";
+  }
+
+  .editor-main > .editor-tools {
+    grid-area: tools;
+  }
+
+  .editor-main > .editor-preview {
+    grid-area: preview;
+  }
+
+  .editor-main > .editor-properties {
+    grid-area: props;
+  }
+}
+
+@media (max-width: 760px) {
+  .editor-workspace {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .editor-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .editor-toolbar-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .editor-main {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .editor-main > .editor-preview {
+    order: 1;
+    min-height: 240px;
+  }
+
+  .editor-main > .editor-tools {
+    order: 2;
+  }
+
+  .editor-main > .editor-properties {
+    order: 3;
+  }
+
+  .editor-tool-list {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .editor-tool-list > .editor-tool-button,
+  .editor-media-upload {
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .editor-playback,
+  .editor-timeline {
+    flex-wrap: wrap;
+  }
+}
+
+/* Phone fix: grid/flex children default to min-width:auto, which let the
+   horizontally scrollable tool strip push the whole editor wider than the
+   screen. Constrain each level so the strip scrolls inside the layout. */
+@media (max-width: 760px) {
+  .editor-workspace,
+  .editor-workspace > *,
+  .editor-main,
+  .editor-main > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .editor-tool-list {
+    max-width: 100%;
+  }
+}

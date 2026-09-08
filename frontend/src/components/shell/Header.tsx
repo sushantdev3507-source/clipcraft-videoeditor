@@ -16,7 +16,7 @@ export default function Header({
   const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Rushikesh's global search shortcut: Ctrl/Cmd + K focuses the search field.
+  // Global search shortcut: Ctrl/Cmd + K focuses the search field.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {

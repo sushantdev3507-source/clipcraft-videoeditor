@@ -14,7 +14,7 @@ export default function AppShell({
   /** Set false for pages that stay reachable when signed out (e.g. Help). */
   guard?: boolean;
 }) {
-  // Rupesh's mobile sidebar behaviour (responsive.js) as React state.
+  // Mobile sidebar behaviour (responsive.js) as React state.
   const [navOpen, setNavOpen] = useState(false);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 

@@ -2,7 +2,7 @@
 
 // =========================================================
 // ClipCraft - Video Editing Workspace
-// Original owner: Nutan Dhepe (vanilla JS modules/editor/*.js)
+// Converted from the original vanilla JS editor modules to React)
 // Converted to React for the ClipCraft Next-gen frontend.
 // Single, integrated editor: one video element, one timeline.
 // =========================================================

@@ -1,4 +1,4 @@
-/* Rupesh: responsive/mobile layer */
+/* Responsive/mobile layer */
 @media (max-width: 900px) {
   .app-shell {
     grid-template-columns: 1fr;

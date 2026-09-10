@@ -5,15 +5,15 @@
 // were heading so they land there after signing in.
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 const AUTH_ROUTES = ["/login", "/signup", "/forgot-password"];
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
   const { user, ready } = useAuth();
-  const navigate = useNavigate();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const router = useRouter();
+  const pathname = usePathname();
   const redirected = useRef(false);
 
   useEffect(() => {
@@ -22,8 +22,8 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
     // becomes /login mid-navigation, which used to overwrite the saved target.
     redirected.current = true;
     const target = AUTH_ROUTES.includes(pathname) ? "/workspace" : pathname;
-    void navigate({ to: "/login", search: { redirect: target }, replace: true });
-  }, [ready, user, navigate, pathname]);
+    router.replace(`/login?redirect=${encodeURIComponent(target)}`);
+  }, [ready, user, router, pathname]);
 
   if (!ready || !user) {
     return (

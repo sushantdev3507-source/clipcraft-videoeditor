@@ -7,7 +7,7 @@
 // components. Only endpoints documented by the backend team are used here.
 
 export const API_BASE_URL = (
-  (import.meta.env["VITE_API_BASE_URL"] as string | undefined) ?? "http://localhost:5000"
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000"
 ).replace(/\/+$/, "");
 
 const TOKEN_KEY = "clipcraft_auth_token";
@@ -181,42 +181,12 @@ export type AuthUser = {
   auth_provider?: string;
 };
 
-/**
- * Matches the `timeline_json` shape the backend's timelineCompiler.service.js
- * validates/normalizes (see that file's header comment) -- this is what
- * EditorWorkspace.tsx's snapshot gets translated into for
- * `PUT /api/v1/projects/:id/timeline`, and what the export pipeline reads
- * back to render. `tracks`/`clips` are arrays for forward-compatibility with
- * a real multi-clip timeline, but today the editor only ever produces one
- * track with one clip.
- */
-export type TimelineClip = {
-  assetId: string;
-  trimStart: number | null;
-  trimEnd: number | null;
-  speed: number; // one of 0.25, 0.5, 1, 1.5, 2
-  volume: number; // 0..1
-  muted: boolean;
-  rotation: number; // one of 0, 90, 180, 270
-  flipX: 1 | -1;
-  flipY: 1 | -1;
-  crop: "original" | "16:9" | "9:16" | "1:1" | "4:3";
-  text: string;
-  textPosition: "center" | "top" | "bottom";
-};
-
-export type TimelineJson = {
-  tracks: { clips: TimelineClip[] }[];
-};
-
 export type Project = {
   id: string;
   title?: string;
   aspect_ratio?: string;
   fps?: number;
   status?: string;
-  timeline_json?: TimelineJson;
-  revision?: number;
   created_at?: string;
   updated_at?: string;
   createdAt?: string;
@@ -287,19 +257,6 @@ export const projectsApi = {
 
   remove: (id: string) =>
     request<{ message?: string }>(`/api/v1/projects/${id}`, { method: "DELETE" }),
-
-  /**
-   * Saves the editor's timeline to the project's real `timeline_json`.
-   * Optimistic concurrency: the backend rejects with 409 (ApiError with
-   * that status) if `revision` doesn't match the project's current
-   * revision — callers should refetch the project and retry/merge rather
-   * than blindly resend the same revision.
-   */
-  saveTimeline: (id: string, body: { timeline_json: TimelineJson; revision: number }) =>
-    request<{ message: string; project: Project }>(`/api/v1/projects/${id}/timeline`, {
-      method: "PUT",
-      json: body,
-    }),
 };
 
 /* -------------------------------------------------- media */
@@ -344,51 +301,3 @@ export const mediaApi = {
 export function isProcessing(asset: Pick<MediaAsset, "status">) {
   return asset.status === "UPLOADING" || asset.status === "PROCESSING";
 }
-
-/* -------------------------------------------------- export */
-
-export type ExportFormat = "mp4";
-export type ExportQuality = "720p" | "1080p";
-export type ExportStatus = "queued" | "processing" | "completed" | "failed";
-
-export type ExportJob = {
-  id: string;
-  project_id: string;
-  user_id: string;
-  format: ExportFormat;
-  quality: ExportQuality;
-  status: ExportStatus;
-  error_message: string | null;
-  output_storage_key: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export function isExportInFlight(job: Pick<ExportJob, "status">) {
-  return job.status === "queued" || job.status === "processing";
-}
-
-export const exportApi = {
-  /** Renders the project's currently-saved timeline_json -- save the timeline first. */
-  create: (body: { projectId: string; format?: ExportFormat; quality?: ExportQuality }) =>
-    request<{ message: string; job: ExportJob }>("/api/v1/export", {
-      method: "POST",
-      json: body,
-    }),
-
-  get: (id: string, signal?: AbortSignal) =>
-    request<{ job: ExportJob }>(`/api/v1/export/${id}`, signal ? { signal } : {}),
-
-  listForProject: (projectId: string, signal?: AbortSignal) =>
-    request<{ count: number; jobs: ExportJob[] }>(
-      `/api/v1/export?projectId=${encodeURIComponent(projectId)}`,
-      signal ? { signal } : {},
-    ),
-
-  retry: (id: string) =>
-    request<{ message: string; job: ExportJob }>(`/api/v1/export/${id}/retry`, { method: "POST" }),
-
-  /** Authenticated blob URL for a completed export's rendered file -- hand this to a temporary <a download> to trigger a real browser save. */
-  downloadUrl: (id: string, signal?: AbortSignal) =>
-    requestObjectUrl(`/api/v1/export/${id}/download`, signal),
-};

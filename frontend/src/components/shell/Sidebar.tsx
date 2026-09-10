@@ -1,9 +1,8 @@
 "use client";
 
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-const activeProps = { className: "nav-item active" };
-const inactiveProps = { className: "nav-item" };
 
 export default function Sidebar({
   mobileOpen = false,
@@ -12,6 +11,8 @@ export default function Sidebar({
   mobileOpen?: boolean;
   onNavigate?: () => void;
 }) {
+  const pathname = usePathname();
+  const navClass = (path: string) => pathname === path ? "nav-item active" : "nav-item";
   return (
     <aside
       className={`app-sidebar${mobileOpen ? " is-mobile-open" : ""}`}
@@ -27,11 +28,8 @@ export default function Sidebar({
         <h3 className="sidebar-section-title">WORKSPACE</h3>
         <nav className="sidebar-nav" aria-label="Workspace navigation">
           <Link
-            to="/workspace"
-            activeOptions={{ exact: true }}
-            activeProps={activeProps}
-            inactiveProps={inactiveProps}
-            className="nav-item"
+            href="/workspace"
+            className={navClass("/workspace")}
           >
             <span className="nav-icon" aria-hidden="true">
               ⌂
@@ -40,10 +38,8 @@ export default function Sidebar({
           </Link>
 
           <Link
-            to="/projects"
-            activeProps={activeProps}
-            inactiveProps={inactiveProps}
-            className="nav-item"
+            href="/projects"
+            className={navClass("/projects")}
           >
             <span className="nav-icon" aria-hidden="true">
               ▣
@@ -52,10 +48,8 @@ export default function Sidebar({
           </Link>
 
           <Link
-            to="/templates"
-            activeProps={activeProps}
-            inactiveProps={inactiveProps}
-            className="nav-item"
+            href="/templates"
+            className={navClass("/templates")}
           >
             <span className="nav-icon" aria-hidden="true">
               ◇
@@ -64,10 +58,8 @@ export default function Sidebar({
           </Link>
 
           <Link
-            to="/media"
-            activeProps={activeProps}
-            inactiveProps={inactiveProps}
-            className="nav-item"
+            href="/media"
+            className={navClass("/media")}
           >
             <span className="nav-icon" aria-hidden="true">
               ▤
@@ -76,10 +68,8 @@ export default function Sidebar({
           </Link>
 
           <Link
-            to="/entry"
-            activeProps={activeProps}
-            inactiveProps={inactiveProps}
-            className="nav-item"
+            href="/entry"
+            className={navClass("/entry")}
           >
             <span className="nav-icon" aria-hidden="true">
               ↑
@@ -88,10 +78,8 @@ export default function Sidebar({
           </Link>
 
           <Link
-            to="/editor"
-            activeProps={activeProps}
-            inactiveProps={inactiveProps}
-            className="nav-item"
+            href="/editor"
+            className={navClass("/editor")}
           >
             <span className="nav-icon" aria-hidden="true">
               ✦
@@ -102,13 +90,21 @@ export default function Sidebar({
       </section>
 
       <section className="sidebar-group">
-        <h3 className="sidebar-section-title">ACTIVITY</h3>
-        <nav className="sidebar-nav" aria-label="Activity navigation">
+        <h3 className="sidebar-section-title">TEAM</h3>
+        <nav className="sidebar-nav" aria-label="Team navigation">
           <Link
-            to="/analytics"
-            activeProps={activeProps}
-            inactiveProps={inactiveProps}
-            className="nav-item"
+            href="/team"
+            className={navClass("/team")}
+          >
+            <span className="nav-icon" aria-hidden="true">
+              ♙
+            </span>
+            <span className="nav-label">Team</span>
+          </Link>
+
+          <Link
+            href="/analytics"
+            className={navClass("/analytics")}
           >
             <span className="nav-icon" aria-hidden="true">
               ▥
@@ -122,10 +118,8 @@ export default function Sidebar({
         <h3 className="sidebar-section-title">SETTINGS</h3>
         <nav className="sidebar-nav" aria-label="Settings navigation">
           <Link
-            to="/account"
-            activeProps={activeProps}
-            inactiveProps={inactiveProps}
-            className="nav-item"
+            href="/account"
+            className={navClass("/account")}
           >
             <span className="nav-icon" aria-hidden="true">
               ⚙
@@ -134,10 +128,8 @@ export default function Sidebar({
           </Link>
 
           <Link
-            to="/help"
-            activeProps={activeProps}
-            inactiveProps={inactiveProps}
-            className="nav-item"
+            href="/help"
+            className={navClass("/help")}
           >
             <span className="nav-icon" aria-hidden="true">
               ?

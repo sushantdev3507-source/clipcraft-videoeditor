@@ -1,11 +1,11 @@
 "use client";
 
 // ClipCraft public landing page.
-// Converted from the original landing markup + css/landing.css.).
+// Original owner: Aditi (ClipCraft-Frontend landing markup + css/landing.css).
 // Structure, copy and class names are kept from the team build; only React
 // wiring, keyboard focus states and responsive behaviour were added.
 
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
 const features = [
@@ -50,7 +50,7 @@ export default function LandingPage() {
   return (
     <div className="landing-page">
       <header className="landing-navbar">
-        <Link to="/" className="landing-logo" aria-label="ClipCraft home">
+        <Link href="/" className="landing-logo" aria-label="ClipCraft home">
           <img src="/assets/clipcraft_logo.png" alt="" />
           <div>
             <h2>ClipCraft</h2>
@@ -61,15 +61,15 @@ export default function LandingPage() {
         <nav className="landing-nav-links" aria-label="Landing navigation">
           <a href="#features">Features</a>
           <a href="#how-it-works">How it works</a>
-          <Link to="/help">Support</Link>
+          <Link href="/help">Support</Link>
         </nav>
 
         {user ? (
-          <Link to="/workspace" className="landing-signin">
+          <Link href="/workspace" className="landing-signin">
             Go to Workspace
           </Link>
         ) : (
-          <Link to="/login" className="landing-signin">
+          <Link href="/login" className="landing-signin">
             Sign In
           </Link>
         )}
@@ -90,7 +90,7 @@ export default function LandingPage() {
           </p>
 
           <div className="hero-buttons">
-            <Link to={user ? "/workspace" : "/signup"} className="hero-primary-btn">
+            <Link href={user ? "/workspace" : "/signup"} className="hero-primary-btn">
               {user ? "Open Workspace" : "Get Started Free"}
             </Link>
             <a href="#features" className="hero-secondary-btn">
@@ -165,7 +165,7 @@ export default function LandingPage() {
         <div className="landing-cta-box">
           <h2>Ready to craft your next video?</h2>
           <p>Create a free ClipCraft account and start editing in your browser today.</p>
-          <Link to={user ? "/workspace" : "/signup"} className="hero-primary-btn">
+          <Link href={user ? "/workspace" : "/signup"} className="hero-primary-btn">
             {user ? "Open Workspace" : "Create Free Account"}
           </Link>
         </div>

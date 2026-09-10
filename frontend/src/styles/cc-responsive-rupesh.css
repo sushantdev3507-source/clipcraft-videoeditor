@@ -1,0 +1,745 @@
+/* =========================================================
+   CLIPCRAFT - RESPONSIVE / MOBILE UI
+   Owner: Rupesh
+   ========================================================= */
+
+
+/* =========================================================
+   GLOBAL RESPONSIVE SAFETY
+   ========================================================= */
+
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  width: 100%;
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+
+/* =========================================================
+   MOBILE MENU BUTTON
+   Desktop par hidden
+   ========================================================= */
+
+.responsive-menu-button {
+  display: none;
+
+  width: 40px;
+  height: 40px;
+
+  flex-shrink: 0;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+
+  background: var(--surface-2);
+  color: var(--text);
+
+  font-size: 20px;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   SIDEBAR OVERLAY
+   ========================================================= */
+
+.responsive-sidebar-overlay {
+  display: none;
+
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 900;
+
+  background: rgba(0, 0, 0, 0.55);
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  transition:
+    opacity 0.2s ease;
+}
+
+.responsive-sidebar-overlay.is-visible {
+  display: block;
+
+  opacity: 1;
+
+  pointer-events: auto;
+}
+
+
+/* =========================================================
+   DESKTOP
+   1025px+
+   ========================================================= */
+
+@media (min-width: 1025px) {
+
+  .app-shell {
+    grid-template-columns:
+      240px minmax(0, 1fr);
+  }
+
+  .main-content {
+    min-width: 0;
+  }
+
+}
+
+
+/* =========================================================
+   TABLET
+   769px - 1024px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  .app-shell {
+    grid-template-columns:
+      210px minmax(0, 1fr);
+
+    grid-template-rows:
+      68px minmax(0, 1fr);
+  }
+
+
+  .main-content {
+    min-width: 0;
+
+    padding: 24px;
+  }
+
+
+  .app-header {
+    padding-inline: 20px;
+  }
+
+
+  .header-center {
+    min-width: 0;
+  }
+
+
+  .global-search {
+    max-width: 520px;
+
+    margin-inline: auto;
+  }
+
+
+  .global-search-input {
+    min-width: 0;
+  }
+
+
+  .profile-details {
+    display: none;
+  }
+
+
+  .content-grid-4 {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+
+  .content-grid-3 {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+
+  .content-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+
+  .layout-row {
+    flex-wrap: wrap;
+  }
+
+
+  .space-between {
+    flex-wrap: wrap;
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+   0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  /* -------------------------------------------------------
+     APP SHELL
+     ------------------------------------------------------- */
+
+  .app-shell {
+    width: 100%;
+    min-height: 100vh;
+
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    grid-template-rows:
+      64px minmax(0, 1fr);
+  }
+
+
+  /* -------------------------------------------------------
+     HEADER
+     ------------------------------------------------------- */
+
+  .app-header {
+    grid-column: 1;
+    grid-row: 1;
+
+    width: 100%;
+
+    min-width: 0;
+
+    min-height: 64px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding-inline: 12px;
+  }
+
+
+  .responsive-menu-button {
+    display: inline-flex;
+
+    order: -1;
+  }
+
+
+  .header-left {
+    min-width: 0;
+
+    flex-shrink: 0;
+  }
+
+
+  .header-center {
+    flex: 1;
+
+    min-width: 0;
+  }
+
+
+  .header-right {
+    min-width: 0;
+
+    flex-shrink: 0;
+  }
+
+
+  /* -------------------------------------------------------
+     BRAND
+     ------------------------------------------------------- */
+
+  .brand {
+    min-width: 0;
+
+    gap: 8px;
+  }
+
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+  }
+
+
+  .brand-text {
+    min-width: 0;
+  }
+
+
+  .brand-name {
+    font-size: 15px;
+  }
+
+
+  .brand-tagline {
+    font-size: 8px;
+  }
+
+
+  /* -------------------------------------------------------
+     SEARCH
+     ------------------------------------------------------- */
+
+  .global-search {
+    width: 100%;
+
+    min-width: 0;
+
+    height: 40px;
+  }
+
+
+  .global-search-input {
+    width: 100%;
+
+    min-width: 0;
+
+    font-size: 12px;
+  }
+
+
+  .search-shortcut {
+    display: none;
+  }
+
+
+  /* -------------------------------------------------------
+     HEADER RIGHT
+     ------------------------------------------------------- */
+
+  .header-divider {
+    display: none;
+  }
+
+
+  .profile-details,
+  .profile-arrow {
+    display: none;
+  }
+
+
+  .header-icon-button {
+    width: 40px;
+    height: 40px;
+  }
+
+
+  .profile-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+
+  /* -------------------------------------------------------
+     SIDEBAR
+     ------------------------------------------------------- */
+
+  .app-sidebar {
+
+    position: fixed;
+
+    top: 0;
+    left: 0;
+    bottom: 0;
+
+    z-index: 1000;
+
+    width: min(280px, 82vw);
+
+    height: 100vh;
+
+    overflow-y: auto;
+
+    transform:
+      translateX(-105%);
+
+    transition:
+      transform 0.25s ease;
+
+    box-shadow:
+      15px 0 40px rgba(0, 0, 0, 0.35);
+  }
+
+
+  .app-sidebar.is-mobile-open {
+
+    transform:
+      translateX(0);
+  }
+
+
+  body.sidebar-open {
+    overflow: hidden;
+  }
+
+
+  /* -------------------------------------------------------
+     MAIN CONTENT
+     ------------------------------------------------------- */
+
+  .main-content {
+
+    grid-column: 1;
+    grid-row: 2;
+
+    width: 100%;
+
+    min-width: 0;
+
+    min-height: 0;
+
+    padding:
+      20px 16px;
+  }
+
+
+  .main-content-inner {
+
+    width: 100%;
+
+    min-width: 0;
+  }
+
+
+  /* -------------------------------------------------------
+     GRID
+     ------------------------------------------------------- */
+
+  .content-grid,
+  .content-grid-3,
+  .content-grid-4 {
+
+    grid-template-columns: 1fr;
+
+    width: 100%;
+  }
+
+
+  /* -------------------------------------------------------
+     FLEX
+     ------------------------------------------------------- */
+
+  .layout-row {
+
+    flex-direction: column;
+
+    align-items: stretch;
+
+    width: 100%;
+  }
+
+
+  .space-between {
+
+    flex-direction: column;
+
+    align-items: stretch;
+
+    width: 100%;
+  }
+
+
+  /* -------------------------------------------------------
+     BUTTONS
+     ------------------------------------------------------- */
+
+  button,
+  .ui-button {
+
+    min-height: 44px;
+  }
+
+
+  /* -------------------------------------------------------
+     FORMS
+     ------------------------------------------------------- */
+
+  input,
+  select,
+  textarea {
+
+    width: 100%;
+
+    max-width: 100%;
+
+    font-size: 16px;
+  }
+
+
+  /* -------------------------------------------------------
+     VIDEO
+     ------------------------------------------------------- */
+
+  video {
+
+    width: 100%;
+
+    height: auto;
+
+    max-height: 70vh;
+
+    object-fit: contain;
+  }
+
+
+  /* -------------------------------------------------------
+     TABLE
+     ------------------------------------------------------- */
+
+  .table-container,
+  .table-wrapper {
+
+    width: 100%;
+
+    overflow-x: auto;
+
+    -webkit-overflow-scrolling: touch;
+  }
+
+
+  table {
+
+    min-width: 620px;
+  }
+
+
+  /* -------------------------------------------------------
+     MODAL
+     ------------------------------------------------------- */
+
+  .modal-overlay {
+
+    padding: 12px;
+  }
+
+
+  .modal {
+
+    width:
+      min(100%, 520px);
+
+    max-width: 100%;
+
+    max-height: 90vh;
+
+    overflow-y: auto;
+  }
+
+
+  /* -------------------------------------------------------
+     TEXT
+     ------------------------------------------------------- */
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span {
+
+    overflow-wrap: anywhere;
+  }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   <= 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .app-shell {
+
+    grid-template-rows:
+      60px minmax(0, 1fr);
+  }
+
+
+  .app-header {
+
+    min-height: 60px;
+
+    padding-inline: 8px;
+
+    gap: 6px;
+  }
+
+
+  .responsive-menu-button {
+
+    width: 38px;
+    height: 38px;
+  }
+
+
+  .brand-text {
+
+    display: none;
+  }
+
+
+  .brand-mark {
+
+    width: 34px;
+    height: 34px;
+  }
+
+
+  .global-search {
+
+    height: 38px;
+  }
+
+
+  .global-search-input {
+
+    font-size: 11px;
+  }
+
+
+  .header-icon-button {
+
+    width: 36px;
+    height: 36px;
+  }
+
+
+  .profile-avatar {
+
+    width: 32px;
+    height: 32px;
+  }
+
+
+  .main-content {
+
+    padding:
+      16px 12px;
+  }
+
+
+  .content-section {
+
+    margin-bottom: 24px;
+  }
+
+
+  button,
+  .ui-button {
+
+    min-height: 44px;
+  }
+
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   <= 360px
+   ========================================================= */
+
+@media (max-width: 360px) {
+
+  .app-header {
+
+    gap: 4px;
+  }
+
+
+  .header-right {
+
+    gap: 2px;
+  }
+
+
+  .global-search-input {
+
+    font-size: 10px;
+
+    padding-inline: 4px;
+  }
+
+
+  .main-content {
+
+    padding-inline: 10px;
+  }
+
+}
+
+
+/* =========================================================
+   LANDSCAPE MOBILE
+   ========================================================= */
+
+@media (max-width: 768px)
+and (orientation: landscape) {
+
+  .app-sidebar {
+
+    width: 260px;
+  }
+
+
+  .main-content {
+
+    padding-block: 14px;
+  }
+
+
+  .modal {
+
+    max-height: 92vh;
+  }
+
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+
+    scroll-behavior: auto !important;
+
+    animation-duration:
+      0.01ms !important;
+
+    animation-iteration-count:
+      1 !important;
+
+    transition-duration:
+      0.01ms !important;
+  }
+
+}

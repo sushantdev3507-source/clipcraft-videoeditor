@@ -2,26 +2,15 @@
 
 // =========================================================
 // ClipCraft - Video Editing Workspace
-// Converted from the original vanilla JS editor modules to React)
+// Original owner: Nutan Dhepe (vanilla JS modules/editor/*.js)
 // Converted to React for the ClipCraft Next-gen frontend.
 // Single, integrated editor: one video element, one timeline.
 // =========================================================
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEditor } from "@/context/EditorContext";
-import {
-  ApiError,
-  exportApi,
-  isExportInFlight,
-  isProcessing,
-  mediaApi,
-  projectsApi,
-  type ExportFormat,
-  type ExportQuality,
-  type TimelineClip,
-  type TimelineJson,
-} from "@/lib/api";
+import { ApiError, isProcessing, mediaApi } from "@/lib/api";
 
 type Tool = "media" | "trim" | "split" | "speed" | "volume" | "transform" | "crop" | "text";
 type TextPosition = "center" | "top" | "bottom";
@@ -75,60 +64,6 @@ function formatTime(seconds: number) {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
-// --- EditorSnapshot <-> backend timeline_json -------------------------
-// The backend (app/services/timelineCompiler.service.js) validates/
-// normalizes this exact clip shape and resolves it to a real render. This
-// editor only ever produces a single track with a single clip -- `splitTime`
-// has no equivalent on the backend and isn't saved (it's a pure UI marker
-// with zero effect on rendering, same as in EditorSnapshot's own comments).
-
-function snapshotToClip(snapshot: EditorSnapshot, assetId: string): TimelineClip {
-  return {
-    assetId,
-    trimStart: snapshot.trimStart,
-    trimEnd: snapshot.trimEnd,
-    speed: snapshot.speed,
-    volume: snapshot.volume,
-    muted: snapshot.muted,
-    rotation: snapshot.rotation,
-    flipX: snapshot.flipX,
-    flipY: snapshot.flipY,
-    crop: snapshot.crop,
-    text: snapshot.text,
-    textPosition: snapshot.textPosition,
-  };
-}
-
-function clipToSnapshotPatch(clip: TimelineClip): Partial<EditorSnapshot> {
-  return {
-    trimStart: clip.trimStart,
-    trimEnd: clip.trimEnd,
-    speed: clip.speed,
-    volume: clip.volume,
-    muted: clip.muted,
-    rotation: clip.rotation,
-    flipX: clip.flipX,
-    flipY: clip.flipY,
-    crop: clip.crop,
-    text: clip.text,
-    textPosition: clip.textPosition,
-  };
-}
-
-/** Finds this asset's clip inside a project's saved timeline_json, if any. */
-function extractClipForAsset(
-  timeline: TimelineJson | undefined,
-  assetId: string | null,
-): TimelineClip | null {
-  if (!timeline || !assetId) return null;
-  for (const track of timeline.tracks ?? []) {
-    for (const clip of track.clips ?? []) {
-      if (clip.assetId === assetId) return clip;
-    }
-  }
-  return null;
-}
-
 export default function EditorWorkspace({
   projectId = null,
   assetId = null,
@@ -151,20 +86,6 @@ export default function EditorWorkspace({
   const [status, setStatus] = useState("No video loaded");
   const [toolStatus, setToolStatus] = useState("");
   const [exporting, setExporting] = useState(false);
-  const [saveStatus, setSaveStatus] = useState("");
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
-  const [exportQuality, setExportQuality] = useState<ExportQuality>("1080p");
-  const [exportJobId, setExportJobId] = useState<string | null>(null);
-
-  // The project's current optimistic-concurrency revision (see
-  // PUT /api/v1/projects/:id/timeline) -- not React state, since updating it
-  // must never itself trigger a re-render/re-save loop. null until the
-  // project's real data has loaded.
-  const revisionRef = useRef<number | null>(null);
-  // Guards the debounced autosave effect below from firing on the
-  // synchronous state set that happens while *loading* saved state (from
-  // the backend or localStorage) -- only real user edits should autosave.
-  const initializedRef = useRef(false);
 
   // --- already-uploaded backend asset ---------------------------------
   // When the editor is opened for an uploaded asset, its details come from the
@@ -182,40 +103,6 @@ export default function EditorWorkspace({
 
   const asset = assetQuery.data;
   const assetReady = asset?.status === "READY";
-
-  // The project's real, persisted timeline -- same query shape/key entry.tsx
-  // uses, so navigating from there doesn't refetch what's already cached.
-  const projectQuery = useQuery({
-    queryKey: ["project", projectId],
-    queryFn: ({ signal }) => projectsApi.get(projectId as string, signal),
-    enabled: Boolean(projectId),
-  });
-  const project = projectQuery.data?.project;
-
-  const saveTimelineMutation = useMutation({
-    mutationFn: (vars: { timeline_json: TimelineJson; revision: number }) =>
-      projectsApi.saveTimeline(projectId as string, vars),
-  });
-
-  const createExportMutation = useMutation({
-    mutationFn: (vars: { format: ExportFormat; quality: ExportQuality }) =>
-      exportApi.create({
-        projectId: projectId as string,
-        format: vars.format,
-        quality: vars.quality,
-      }),
-  });
-
-  const exportJobQuery = useQuery({
-    queryKey: ["export-job", exportJobId],
-    queryFn: ({ signal }) => exportApi.get(exportJobId as string, signal).then((data) => data.job),
-    enabled: Boolean(exportJobId),
-    refetchInterval: (query) => {
-      const job = query.state.data;
-      return job && isExportInFlight(job) ? 1500 : false;
-    },
-  });
-  const exportJob = exportJobQuery.data;
 
   const streamQuery = useQuery({
     queryKey: ["media-stream", assetId],
@@ -317,88 +204,21 @@ export default function EditorWorkspace({
     persist(snapshot);
   }
 
-  // --- restore saved state: the project's real timeline_json first, this
-  // browser's local draft as a fallback ---------------------------------
-  // A real backend edit (once this project/asset has one) always wins over
-  // localStorage -- localStorage only matters before the first save ever
-  // reaches the backend, or when there's no projectId at all (the local
-  // file-picker flow, which has no project to save to).
+  // --- restore saved per-project state --------------------------------
   useEffect(() => {
     if (!storageKey) return;
-    // Reset while we wait for the definitive answer, so the debounced
-    // autosave effect below can't fire against a stale/wrong revision
-    // while a project switch or initial load is still in flight.
-    initializedRef.current = false;
-    revisionRef.current = null;
-
-    if (projectId && projectQuery.isPending) return;
-
-    let patch: Partial<EditorSnapshot> = {};
-    if (project) {
-      revisionRef.current = project.revision ?? null;
-      const clip = extractClipForAsset(project.timeline_json, assetId);
-      if (clip) {
-        patch = clipToSnapshotPatch(clip);
-      }
+    let saved: EditorSnapshot | null = null;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      saved = raw ? (JSON.parse(raw) as EditorSnapshot) : null;
+    } catch {
+      saved = null;
     }
-
-    if (Object.keys(patch).length === 0) {
-      try {
-        const raw = localStorage.getItem(storageKey);
-        if (raw) patch = JSON.parse(raw) as Partial<EditorSnapshot>;
-      } catch {
-        /* storage unavailable / corrupt -- fall through to defaults */
-      }
-    }
-
-    const next = { ...initialSnapshot, ...patch };
+    const next = saved ? { ...initialSnapshot, ...saved } : initialSnapshot;
     setState(next);
     setHistory([next]);
     setHistoryIndex(0);
-    initializedRef.current = true;
-    // project/assetId identify which saved edit we're loading; project.data
-    // itself (not just isPending) must also be watched so this reruns once
-    // the query resolves.
-  }, [storageKey, projectId, assetId, project, projectQuery.isPending]);
-
-  // --- debounced autosave of the timeline to the backend ---------------
-  useEffect(() => {
-    if (!projectId || !asset?.id) return;
-    if (!initializedRef.current || revisionRef.current === null) return;
-
-    const timer = setTimeout(() => {
-      const revision = revisionRef.current;
-      if (revision === null) return;
-      const timeline_json: TimelineJson = {
-        tracks: [{ clips: [snapshotToClip(state, asset.id)] }],
-      };
-
-      setSaveStatus("Saving…");
-      saveTimelineMutation.mutate(
-        { timeline_json, revision },
-        {
-          onSuccess: (data) => {
-            revisionRef.current = data.project.revision ?? revision + 1;
-            setSaveStatus("Saved");
-          },
-          onError: (err) => {
-            if (err instanceof ApiError && err.status === 409) {
-              setSaveStatus("This project changed elsewhere — reopen it to sync.");
-              return;
-            }
-            setSaveStatus(err instanceof ApiError ? err.message : "Couldn't save your edit.");
-          },
-        },
-      );
-    }, 800);
-
-    return () => clearTimeout(timer);
-    // saveTimelineMutation is intentionally omitted: it's a new object
-    // identity every render (react-query's useMutation), so depending on it
-    // would reset this debounce timer on every render instead of only on a
-    // real edit.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, projectId, asset?.id]);
+  }, [storageKey]);
 
   // --- apply state to the single video element ------------------------
   useEffect(() => {
@@ -491,11 +311,6 @@ export default function EditorWorkspace({
         </div>
 
         <div className="editor-toolbar-actions">
-          {projectId && asset?.id && saveStatus ? (
-            <span className="editor-project-status" aria-live="polite">
-              {saveStatus}
-            </span>
-          ) : null}
           <button type="button" className="btn" onClick={undo} disabled={!canUndo}>
             Undo
           </button>
@@ -686,81 +501,7 @@ export default function EditorWorkspace({
   // -------------------------------------------------------------------
   function openExport() {
     setExporting(true);
-    setExportJobId(null);
-    setToolStatus(
-      projectId && asset?.id ? "Ready to export." : "Export requires an uploaded project video.",
-    );
-  }
-
-  /**
-   * Saves the current edit (bypassing the autosave debounce, so the export
-   * always renders exactly what's on screen) and then creates a real export
-   * job. On a revision conflict (someone/something else saved in between),
-   * refetches the project and asks the user to retry rather than silently
-   * clobbering whatever changed.
-   */
-  async function startExport() {
-    if (!projectId || !asset?.id) {
-      setToolStatus("Export requires a project and an uploaded video.");
-      return;
-    }
-    if (revisionRef.current === null) {
-      setToolStatus("Still loading this project's saved edit — try again in a moment.");
-      return;
-    }
-
-    try {
-      setToolStatus("Saving your edit…");
-      const timeline_json: TimelineJson = {
-        tracks: [{ clips: [snapshotToClip(state, asset.id)] }],
-      };
-      const saveResult = await saveTimelineMutation.mutateAsync({
-        timeline_json,
-        revision: revisionRef.current,
-      });
-      revisionRef.current = saveResult.project.revision ?? revisionRef.current + 1;
-      setSaveStatus("Saved");
-
-      setToolStatus("Starting export…");
-      const { job } = await createExportMutation.mutateAsync({
-        format: exportFormat,
-        quality: exportQuality,
-      });
-      setExportJobId(job.id);
-      setToolStatus("Export queued…");
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        const fresh = await projectQuery.refetch();
-        const freshProject = fresh.data?.project;
-        if (freshProject) revisionRef.current = freshProject.revision ?? revisionRef.current;
-        setToolStatus("This project changed elsewhere — please try Start Export again.");
-        return;
-      }
-      setToolStatus(
-        err instanceof ApiError ? err.message : "Could not start the export. Please try again.",
-      );
-    }
-  }
-
-  /** Downloads a completed export's rendered file via a real browser save. */
-  async function downloadCompletedExport() {
-    if (!exportJobId) return;
-    try {
-      setToolStatus("Preparing download…");
-      const url = await exportApi.downloadUrl(exportJobId);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `clipcraft-export-${exportJobId}.${exportJob?.format ?? "mp4"}`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 30_000);
-      setToolStatus("Download started.");
-    } catch (err) {
-      setToolStatus(
-        err instanceof ApiError ? err.message : "Could not download the exported video.",
-      );
-    }
+    setToolStatus("Ready to export.");
   }
 
   function panelTitle(tool: Tool, isExport: boolean) {
@@ -771,25 +512,13 @@ export default function EditorWorkspace({
 
   function renderProperties() {
     if (exporting) {
-      const inFlight =
-        saveTimelineMutation.isPending ||
-        createExportMutation.isPending ||
-        (exportJob ? isExportInFlight(exportJob) : false);
-      const canExport = Boolean(projectId && asset?.id);
-
       return (
         <div className="editor-property-placeholder">
           <p>Export your edited video.</p>
 
           <div className="editor-property-group">
             <label htmlFor="export-format-select">Format</label>
-            <select
-              id="export-format-select"
-              className="editor-property-input"
-              value={exportFormat}
-              disabled={inFlight}
-              onChange={(e) => setExportFormat(e.target.value as ExportFormat)}
-            >
+            <select id="export-format-select" className="editor-property-input" defaultValue="mp4">
               <option value="mp4">MP4</option>
             </select>
           </div>
@@ -799,58 +528,30 @@ export default function EditorWorkspace({
             <select
               id="export-quality-select"
               className="editor-property-input"
-              value={exportQuality}
-              disabled={inFlight}
-              onChange={(e) => setExportQuality(e.target.value as ExportQuality)}
+              defaultValue="1080p"
             >
               <option value="720p">720p</option>
               <option value="1080p">1080p</option>
             </select>
           </div>
 
-          {exportJob?.status === "completed" ? (
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => void downloadCompletedExport()}
-            >
-              Download Video
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => void startExport()}
-              disabled={inFlight || !canExport}
-            >
-              {inFlight ? "Exporting…" : "Start Export"}
-            </button>
-          )}
-
-          {exportJob?.status === "failed" ? (
-            <button type="button" className="btn" onClick={() => void startExport()}>
-              Retry Export
-            </button>
-          ) : null}
-
           <button
             type="button"
-            className="btn"
-            onClick={() => {
-              setExporting(false);
-              setExportJobId(null);
-            }}
+            className="btn btn-primary"
+            onClick={() =>
+              setToolStatus(
+                "Export requires the ClipCraft rendering service, which is not connected yet.",
+              )
+            }
           >
+            Start Export
+          </button>
+
+          <button type="button" className="btn" onClick={() => setExporting(false)}>
             Close
           </button>
 
-          <div className="editor-transform-status">
-            {exportJob?.status === "failed"
-              ? exportJob.error_message || "The export failed."
-              : exportJob?.status === "completed"
-                ? "Your video is ready to download."
-                : toolStatus}
-          </div>
+          <div className="editor-transform-status">{toolStatus}</div>
         </div>
       );
     }

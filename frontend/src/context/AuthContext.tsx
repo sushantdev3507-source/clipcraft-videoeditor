@@ -18,7 +18,7 @@ import {
   type ReactNode,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useRouter } from "next/navigation";
 import {
   authApi,
   clearToken,
@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [ready, setReady] = useState(false);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const signOut = useCallback(() => {
     clearToken();
@@ -61,10 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearToken();
       setUser(null);
       queryClient.clear();
-      void navigate({ to: "/login", replace: true });
+      router.replace("/login");
     });
     return () => setUnauthorizedHandler(null);
-  }, [navigate, queryClient]);
+  }, [router, queryClient]);
 
   // Session restoration: never trust a stored user object — ask the backend.
   useEffect(() => {

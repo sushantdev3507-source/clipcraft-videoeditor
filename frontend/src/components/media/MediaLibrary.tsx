@@ -8,7 +8,8 @@
 //   DELETE /api/v1/media/:id
 
 import { useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, MEDIA_SIZE_LIMITS, isProcessing, mediaApi, type MediaAsset } from "@/lib/api";
 
@@ -139,7 +140,7 @@ export default function MediaLibrary({ projectId }: { projectId: string | null }
             <div className="media-empty-icon">▣</div>
             <h3>Choose a project first</h3>
             <p>Media is stored per project, so open a project to see and upload its files.</p>
-            <Link to="/projects" className="secondary-editor-button">
+            <Link href="/projects" className="secondary-editor-button">
               Go to Projects
             </Link>
           </div>
@@ -278,7 +279,7 @@ function MediaCard({
   deleting: boolean;
 }) {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const router = useRouter();
   const kind = assetKind(asset);
 
   // Poll this asset while it is still uploading/processing; stops as soon as
@@ -334,7 +335,7 @@ function MediaCard({
   function openAsset() {
     if (live.status !== "READY") return;
     if (kind === "video") {
-      void navigate({ to: "/editor", search: { projectId, assetId: live.id } });
+      router.push(`/editor?projectId=${encodeURIComponent(projectId)}&assetId=${encodeURIComponent(live.id)}`);
       return;
     }
     void mediaApi

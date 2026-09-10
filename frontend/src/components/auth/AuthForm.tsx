@@ -1,13 +1,14 @@
 "use client";
 
 // ClipCraft authentication screens.
-// Converted from the original auth.js + auth.css modules to React.
-// Markup structure (auth-page > auth-brand + auth-container > auth-card),
+// Original owner: Aditi (modules/auth/auth.js + css/auth.css) — converted to
+// React. Markup structure (auth-page > auth-brand + auth-container > auth-card),
 // copy and class names follow the team build; added: labels, submit/loading and
 // success states, password reset screen and post-login redirect.
 
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import AuthBrandPanel from "./AuthBrandPanel";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/api";
@@ -85,9 +86,10 @@ function GoogleIcon() {
 }
 
 export default function AuthForm({ mode }: { mode: Mode }) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { signIn, signUp, user, ready } = useAuth();
-  const search = useSearch({ strict: false }) as { redirect?: string };
+  const searchParams = useSearchParams();
+  const search = { redirect: searchParams.get("redirect") ?? undefined };
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -107,9 +109,9 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   // Already signed in? Skip the auth screens.
   useEffect(() => {
     if (ready && user && !isForgot) {
-      void navigate({ to: "/workspace", replace: true });
+      router.replace("/workspace");
     }
-  }, [ready, user, isForgot, navigate]);
+  }, [ready, user, isForgot, router]);
 
   function validate() {
     const next: FieldErrors = {};
@@ -154,10 +156,9 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       }
 
       const target = search.redirect;
-      void navigate({
-        to: target && target.startsWith("/") && target !== "/login" ? target : "/workspace",
-        replace: true,
-      });
+      router.replace(
+        target && target.startsWith("/") && target !== "/login" ? target : "/workspace",
+      );
     } catch (error) {
       const status = error instanceof ApiError ? error.status : 0;
       const message =
@@ -209,7 +210,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                 way. Password delivery needs the ClipCraft account service, which is not connected
                 yet.
               </p>
-              <Link to="/login" className="btn btn-primary auth-submit">
+              <Link href="/login" className="btn btn-primary auth-submit">
                 Back to log in
               </Link>
             </div>
@@ -351,7 +352,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                       />
                       <span>Remember me</span>
                     </label>
-                    <Link to="/forgot-password">Forgot password?</Link>
+                    <Link href="/forgot-password">Forgot password?</Link>
                   </div>
                 ) : null}
 
@@ -408,15 +409,15 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               <p className="signup-text">
                 {isForgot ? (
                   <>
-                    Remembered it? <Link to="/login">Back to log in</Link>
+                    Remembered it? <Link href="/login">Back to log in</Link>
                   </>
                 ) : isSignup ? (
                   <>
-                    Already have an account? <Link to="/login">Log in</Link>
+                    Already have an account? <Link href="/login">Log in</Link>
                   </>
                 ) : (
                   <>
-                    Don&apos;t have an account? <Link to="/signup">Sign up</Link>
+                    Don&apos;t have an account? <Link href="/signup">Sign up</Link>
                   </>
                 )}
               </p>

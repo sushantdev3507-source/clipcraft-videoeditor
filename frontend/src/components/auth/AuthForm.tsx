@@ -1,10 +1,10 @@
 "use client";
 
 // ClipCraft authentication screens.
-// Original owner: Aditi (modules/auth/auth.js + css/auth.css) — converted to
-// React. Markup structure (auth-page > auth-brand + auth-container > auth-card),
-// copy and class names follow the team build; added: labels, submit/loading and
-// success states, password reset screen and post-login redirect.
+// Converted from the original auth.js + auth.css modules to React.
+// Markup structure (auth-page > auth-brand + auth-container > auth-card),
+// copy and class names follow the original build; added: labels, submit/loading
+// and success states, password reset screen and post-login redirect.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";

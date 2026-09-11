@@ -17,7 +17,7 @@ export default function Header({
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Rushikesh's global search shortcut: Ctrl/Cmd + K focuses the search field.
+  // Global search shortcut: Ctrl/Cmd + K focuses the search field.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -73,25 +73,10 @@ export default function Header({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <span className="search-shortcut">Ctrl K</span>
         </div>
       </div>
 
       <div className="header-right">
-        <button
-          type="button"
-          className="header-icon-button notification-button"
-          aria-label="Notifications"
-          title="Notifications"
-        >
-          <span className="notification-icon" aria-hidden="true">
-            🔔
-          </span>
-          <span className="notification-badge">3</span>
-        </button>
-
-        <div className="header-divider"></div>
-
         {user ? (
           <button
             type="button"

@@ -1,8 +1,8 @@
 "use client";
 
 // ClipCraft public landing page.
-// Original owner: Aditi (ClipCraft-Frontend landing markup + css/landing.css).
-// Structure, copy and class names are kept from the team build; only React
+// Converted from the original landing markup + css/landing.css.
+// Structure, copy and class names are kept from the original build; only React
 // wiring, keyboard focus states and responsive behaviour were added.
 
 import Link from "next/link";

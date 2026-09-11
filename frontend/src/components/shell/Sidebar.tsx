@@ -90,18 +90,8 @@ export default function Sidebar({
       </section>
 
       <section className="sidebar-group">
-        <h3 className="sidebar-section-title">TEAM</h3>
-        <nav className="sidebar-nav" aria-label="Team navigation">
-          <Link
-            href="/team"
-            className={navClass("/team")}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              ♙
-            </span>
-            <span className="nav-label">Team</span>
-          </Link>
-
+        <h3 className="sidebar-section-title">ACTIVITY</h3>
+        <nav className="sidebar-nav" aria-label="Activity navigation">
           <Link
             href="/analytics"
             className={navClass("/analytics")}

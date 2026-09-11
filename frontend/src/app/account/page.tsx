@@ -1,15 +1,11 @@
 "use client";
 
-
-import PlaceholderPage from "@/components/shell/PlaceholderPage";
-
-
+import AppShell from "@/components/shell/AppShell";
+import AccountSettingsPage from "@/components/account/AccountSettingsPage";
 
 const Page = () => (
-    <PlaceholderPage
-      eyebrow="SETTINGS"
-      title="Account & Settings"
-      description="Manage your ClipCraft account and preferences."
-    />
+    <AppShell>
+      <AccountSettingsPage />
+    </AppShell>
   );
 export default Page;

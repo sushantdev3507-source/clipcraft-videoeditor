@@ -16,7 +16,7 @@ const filters: { label: string; value: Status | "all" }[] = [
   { label: "Exported", value: "exported" },
 ];
 
-export const projectsQueryKey = ["projects"] as const;
+const projectsQueryKey = ["projects"] as const;
 
 function projectStatus(project: Project): Status {
   const raw = (project.status ?? "").toLowerCase();
@@ -209,7 +209,7 @@ function ProjectsPage() {
       ) : projectsQuery.isError ? (
         <div className="media-empty-state" role="alert">
           <div className="media-empty-icon">!</div>
-          <h3>We couldn't load your projects</h3>
+          <h3>We couldn&apos;t load your projects</h3>
           <p>
             {projectsQuery.error instanceof ApiError
               ? projectsQuery.error.message

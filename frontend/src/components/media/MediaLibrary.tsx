@@ -210,12 +210,12 @@ export default function MediaLibrary({ projectId }: { projectId: string | null }
           <div className="media-empty-state" role="status" aria-live="polite">
             <div className="media-empty-icon">↻</div>
             <h3>Loading your media…</h3>
-            <p>Fetching this project's files.</p>
+            <p>Fetching this project&apos;s files.</p>
           </div>
         ) : assetsQuery.isError ? (
           <div className="media-empty-state" role="alert">
             <div className="media-empty-icon">!</div>
-            <h3>We couldn't load your media</h3>
+            <h3>We couldn&apos;t load your media</h3>
             <p>
               {assetsQuery.error instanceof ApiError
                 ? assetsQuery.error.message

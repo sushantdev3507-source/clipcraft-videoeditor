@@ -93,7 +93,7 @@ function EntryPage() {
           {projectQuery.isError ? (
             <div className="media-empty-state" role="alert">
               <div className="media-empty-icon">!</div>
-              <h3>We couldn't open that project</h3>
+              <h3>We couldn&apos;t open that project</h3>
               <p>
                 {projectQuery.error instanceof ApiError
                   ? projectQuery.error.message
@@ -188,7 +188,7 @@ function EntryPage() {
           </button>
 
           <Link href={`/media?projectId=${encodeURIComponent(projectId)}`} className="secondary-editor-button">
-            Open this project's Media Library
+            Open this project&apos;s Media Library
           </Link>
         </div>
       </section>

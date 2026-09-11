@@ -76,7 +76,7 @@ function Dashboard() {
         <div className="dashboard-hero-text">
           <span className="dashboard-eyebrow">CLIPCRAFT WORKSPACE</span>
           <h1>Welcome back, {user?.name ?? "creator"} 👋</h1>
-          <p>Let's create something amazing today.</p>
+          <p>Let&apos;s create something amazing today.</p>
         </div>
 
         <button
@@ -142,7 +142,7 @@ function Dashboard() {
         ) : projectsQuery.isError ? (
           <div className="media-empty-state" role="alert">
             <div className="media-empty-icon">!</div>
-            <h3>We couldn't load your projects</h3>
+            <h3>We couldn&apos;t load your projects</h3>
             <p>
               {projectsQuery.error instanceof ApiError
                 ? projectsQuery.error.message

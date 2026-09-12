@@ -384,15 +384,10 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                   </div>
 
                   <div className="social-login">
-                    <button
-                      type="button"
-                      className="btn social-button"
-                      onClick={() =>
-                        setNotice(
-                          "Google sign-in needs the ClipCraft account service to be connected.",
-                        )
-                      }
-                    >
+                    {/* Google sign-in isn't wired up yet (backend callback needs to hand the
+                        token back to this app before this can work) -- left visible but
+                        inert for now rather than showing a "not connected" message. */}
+                    <button type="button" className="btn social-button">
                       <GoogleIcon />
                       Continue with Google
                     </button>

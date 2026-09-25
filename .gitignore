@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Next.js
+.next/
+out/
+
+# TypeScript generated files
+*.tsbuildinfo
+
+# Playwright generated results
+frontend/test-results/
+frontend/playwright-report/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp

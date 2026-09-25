@@ -1,0 +1,281 @@
+name: ClipCraft CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+jobs:
+
+  # ============================================================
+  # BACKEND TESTS
+  # ============================================================
+
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: clipcraft
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d clipcraft"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: clipcraft
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      NODE_ENV: test
+      JWT_SECRET: clipcraft-ci-test-jwt-secret
+      DEV_AUTH_JWT_SECRET: clipcraft-ci-dev-auth-secret
+      MEDIA_STORAGE_ROOT: ${{ github.workspace }}/backend/storage
+      MEDIA_MAX_FILE_SIZE: 524288000
+      MEDIA_MAX_VIDEO_SIZE: 524288000
+      MEDIA_MAX_AUDIO_SIZE: 209715200
+      MEDIA_MAX_IMAGE_SIZE: 26214400
+      MEDIA_PROCESSING_CONCURRENCY: 4
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Run database migrations
+        run: npm run migrate
+
+      - name: Run backend tests
+        run: npm test
+
+      - name: Run backend security audit
+        run: npm audit --audit-level=high
+
+
+  # ============================================================
+  # FRONTEND CHECKS
+  # ============================================================
+
+  frontend-checks:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    env:
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:5000
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit --pretty false
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Frontend security audit
+        run: npm audit --audit-level=high
+
+
+  # ============================================================
+  # PLAYWRIGHT TESTS
+  # ============================================================
+
+  playwright-tests:
+    name: Playwright Tests
+    runs-on: ubuntu-latest
+
+    needs:
+      - backend-tests
+      - frontend-checks
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: clipcraft
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d clipcraft"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    env:
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:5000
+      TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Start backend
+        working-directory: backend
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: clipcraft
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          NODE_ENV: test
+          JWT_SECRET: clipcraft-ci-test-jwt-secret
+          DEV_AUTH_JWT_SECRET: clipcraft-ci-dev-auth-secret
+          MEDIA_STORAGE_ROOT: ${{ github.workspace }}/backend/storage
+          MEDIA_MAX_FILE_SIZE: 524288000
+          MEDIA_MAX_VIDEO_SIZE: 524288000
+          MEDIA_MAX_AUDIO_SIZE: 209715200
+          MEDIA_MAX_IMAGE_SIZE: 26214400
+          MEDIA_PROCESSING_CONCURRENCY: 4
+          PORT: 5000
+        run: |
+          npm run migrate
+          npm start > backend.log 2>&1 &
+          echo $! > backend.pid
+
+      - name: Start frontend
+        run: |
+          npm run dev > frontend.log 2>&1 &
+          echo $! > frontend.pid
+
+      - name: Wait for backend
+        working-directory: backend
+        run: |
+          for i in {1..60}; do
+            if curl -s http://127.0.0.1:5000 > /dev/null; then
+              echo "Backend is ready."
+              break
+            fi
+
+            echo "Waiting for backend..."
+            sleep 2
+          done
+
+          if ! curl -s http://127.0.0.1:5000 > /dev/null; then
+            echo "Backend did not start."
+            cat backend.log
+            exit 1
+          fi
+
+      - name: Wait for frontend
+        run: |
+          for i in {1..60}; do
+            if curl -s http://127.0.0.1:3000 > /dev/null; then
+              echo "Frontend is ready."
+              break
+            fi
+
+            echo "Waiting for frontend..."
+            sleep 2
+          done
+
+          if ! curl -s http://127.0.0.1:3000 > /dev/null; then
+            echo "Frontend did not start."
+            cat frontend.log
+            exit 1
+          fi
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          if-no-files-found: ignore
+
+      - name: Upload Playwright test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: frontend/test-results/
+          if-no-files-found: ignore
+
+      - name: Show frontend log on failure
+        if: failure()
+        run: |
+          if [ -f frontend.log ]; then
+            cat frontend.log
+          fi
+
+      - name: Show backend log on failure
+        if: failure()
+        working-directory: backend
+        run: |
+          if [ -f backend.log ]; then
+            cat backend.log
+          fi

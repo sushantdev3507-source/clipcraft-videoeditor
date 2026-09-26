@@ -35,3 +35,8 @@ dist-ssr
 .next/
 out/
 node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example

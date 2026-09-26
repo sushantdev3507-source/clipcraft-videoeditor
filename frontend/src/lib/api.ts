@@ -192,6 +192,7 @@ export type AuthUser = {
  */
 export type TimelineClip = {
   assetId: string;
+  start?: number;
   trimStart: number | null;
   trimEnd: number | null;
   speed: number; // one of 0.25, 0.5, 1, 1.5, 2

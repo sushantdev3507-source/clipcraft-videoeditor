@@ -76,6 +76,12 @@ jobs:
       - name: Run database migrations
         run: npm run migrate
 
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version
+
       - name: Run backend tests
         run: npm test
 

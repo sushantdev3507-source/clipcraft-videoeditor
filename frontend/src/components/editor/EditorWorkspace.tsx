@@ -7,7 +7,7 @@
 // Single, integrated editor: one video element, one timeline.
 // =========================================================
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEditor } from "@/context/EditorContext";
 import {
@@ -28,6 +28,7 @@ type TextPosition = "center" | "top" | "bottom";
 type CropRatio = "original" | "16:9" | "9:16" | "1:1" | "4:3";
 
 type EditorSnapshot = {
+  start: number;
   speed: number;
   volume: number;
   muted: boolean;
@@ -43,6 +44,7 @@ type EditorSnapshot = {
 };
 
 const initialSnapshot: EditorSnapshot = {
+  start: 0,
   speed: 1,
   volume: 1,
   muted: false,
@@ -78,6 +80,7 @@ function formatTime(seconds: number) {
 function snapshotToClip(snapshot: EditorSnapshot, assetId: string): TimelineClip {
   return {
     assetId,
+    start: snapshot.start,
     trimStart: snapshot.trimStart,
     trimEnd: snapshot.trimEnd,
     speed: snapshot.speed,
@@ -94,6 +97,7 @@ function snapshotToClip(snapshot: EditorSnapshot, assetId: string): TimelineClip
 
 function clipToSnapshotPatch(clip: TimelineClip): Partial<EditorSnapshot> {
   return {
+    start: clip.start ?? 0,
     trimStart: clip.trimStart,
     trimEnd: clip.trimEnd,
     speed: clip.speed,
@@ -136,6 +140,16 @@ export default function EditorWorkspace({
   const [state, setState] = useState<EditorSnapshot>(initialSnapshot);
   const [history, setHistory] = useState<EditorSnapshot[]>([initialSnapshot]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const timelineDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    start: number;
+    currentStart: number;
+    trackWidth: number;
+    timelineDuration: number;
+    moved: boolean;
+  } | null>(null);
+  const suppressTimelineClickRef = useRef(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -251,6 +265,7 @@ export default function EditorWorkspace({
       const job = query.state.data;
       return job && isExportInFlight(job) ? 1500 : false;
     },
+    refetchIntervalInBackground: true,
   });
   const exportJob = exportJobQuery.data;
 
@@ -346,6 +361,7 @@ export default function EditorWorkspace({
   useEffect(() => {
     if (!projectId || !asset?.id) return;
     if (!initializedRef.current || revisionRef.current === null) return;
+    if (timelineDragRef.current) return;
 
     const timer = setTimeout(() => {
       const revision = revisionRef.current;
@@ -423,12 +439,74 @@ export default function EditorWorkspace({
   }
 
   function seekFromTimeline(event: React.MouseEvent<HTMLDivElement>) {
+    if (suppressTimelineClickRef.current) {
+      suppressTimelineClickRef.current = false;
+      return;
+    }
     const el = videoRef.current;
     if (!el || !duration) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1);
-    el.currentTime = ratio * duration;
+    const timelinePosition = ratio * timelineDuration;
+    const sourcePosition = timelinePosition - state.start;
+    el.currentTime = Math.min(Math.max(sourcePosition, 0), duration);
     setCurrentTime(el.currentTime);
+  }
+
+  function beginTimelineDrag(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0 || !duration) return;
+    const track = event.currentTarget.parentElement;
+    if (!track) return;
+
+    const trackRect = track.getBoundingClientRect();
+    const trackStyle = window.getComputedStyle(track);
+    const padding = parseFloat(trackStyle.paddingLeft) + parseFloat(trackStyle.paddingRight);
+    timelineDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      start: state.start,
+      currentStart: state.start,
+      trackWidth: Math.max(trackRect.width - padding, 1),
+      timelineDuration,
+      moved: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveTimelineClip(event: PointerEvent<HTMLDivElement>) {
+    const drag = timelineDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - drag.startX;
+    if (Math.abs(deltaX) < 2) return;
+
+    drag.moved = true;
+    const nextStart = Math.min(
+      Math.max(drag.start + (deltaX / drag.trackWidth) * drag.timelineDuration, 0),
+      duration,
+    );
+    if (nextStart === drag.currentStart) return;
+
+    drag.currentStart = nextStart;
+    setState((current) => ({ ...current, start: nextStart }));
+  }
+
+  function finishTimelineDrag(event: PointerEvent<HTMLDivElement>) {
+    const drag = timelineDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    timelineDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (!drag.moved) return;
+
+    suppressTimelineClickRef.current = true;
+    const next = { ...state, start: drag.currentStart };
+    setState(next);
+    setHistory((items) => [...items.slice(0, historyIndex + 1), next]);
+    setHistoryIndex(historyIndex + 1);
+    persist(next);
   }
 
   // --- upload ---------------------------------------------------------
@@ -455,9 +533,13 @@ export default function EditorWorkspace({
 
   const trimStart = state.trimStart ?? 0;
   const trimEnd = state.trimEnd ?? duration;
-  const clipLeft = duration ? (trimStart / duration) * 100 : 0;
-  const clipWidth = duration ? Math.max(((trimEnd - trimStart) / duration) * 100, 2) : 100;
-  const playheadLeft = duration ? (currentTime / duration) * 100 : 0;
+  const clipDuration = Math.max(trimEnd - trimStart, 0);
+  const timelineDuration = Math.max(duration, state.start + clipDuration, 0.001);
+  const clipLeft = duration ? (state.start / timelineDuration) * 100 : 0;
+  const clipWidth = duration ? Math.max((clipDuration / timelineDuration) * 100, 2) : 100;
+  const playheadLeft = duration
+    ? ((state.start + Math.max(currentTime - trimStart, 0)) / timelineDuration) * 100
+    : 0;
 
   return (
     <section className="editor-workspace" data-project-id={projectId ?? undefined}>
@@ -629,7 +711,7 @@ export default function EditorWorkspace({
 
         <div className="timeline-ruler">
           {[0, 0.25, 0.5, 0.75, 1].map((fraction) => (
-            <span key={fraction}>{formatTime(duration * fraction)}</span>
+            <span key={fraction}>{formatTime(timelineDuration * fraction)}</span>
           ))}
         </div>
 
@@ -638,7 +720,21 @@ export default function EditorWorkspace({
             <>
               <div
                 className="timeline-clip timeline-segment"
-                style={{ marginLeft: `${clipLeft}%`, width: `${clipWidth}%` }}
+                style={{
+                  marginLeft: `${clipLeft}%`,
+                  width: `${clipWidth}%`,
+                  cursor: "grab",
+                  touchAction: "none",
+                }}
+                onPointerDown={beginTimelineDrag}
+                onPointerMove={moveTimelineClip}
+                onPointerUp={finishTimelineDrag}
+                onPointerCancel={finishTimelineDrag}
+                onClick={(event) => {
+                  if (!suppressTimelineClickRef.current) return;
+                  suppressTimelineClickRef.current = false;
+                  event.stopPropagation();
+                }}
               >
                 {video.name}
               </div>
